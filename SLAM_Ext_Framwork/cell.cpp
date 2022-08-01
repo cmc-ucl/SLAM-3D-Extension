@@ -104,13 +104,15 @@ Cell::Cell( std::string input )
 					this->real_vector[2] << v[0],v[1],v[2];			// set real lattice vector c
 
 					// Setting LatticeMatrix - Eigen::Matrix3d
+					//				a			b			c
+					this->lattice_matrix << this->real_vector[0](0),this->real_vector[1](0),this->real_vector[2](0),	// {a1,b1,c1
+								this->real_vector[0](1),this->real_vector[1](1),this->real_vector[2](1),	//  a2,b2,c2
+								this->real_vector[0](2),this->real_vector[1](2),this->real_vector[2](2);	//  a3,b3,c3}
 
-					this->lattice_matrix << this->real_vector[0](0),this->real_vector[0](1),this->real_vector[0](2), // order	{a1,a2,a3}
-								this->real_vector[1](0),this->real_vector[1](1),this->real_vector[1](2), //		{b1,b2,b3}
-								this->real_vector[2](0),this->real_vector[2](1),this->real_vector[2](2); //		{c1,c2,c3}
+					this->lattice_matrix_transpose = this->lattice_matrix.transpose();
+					this->lattice_matrix_inverse   = this->lattice_matrix.inverse();
 
 					// Expected result : T_hkl = a h + b k + c l		
-					//
 					//
 
 					// PROCESSING RECIPROCAL LATTICE VECTORS
@@ -134,6 +136,61 @@ Cell::Cell( std::string input )
 					//
 
 				}// end if 'cell'
+
+				if( !tmp.compare("lattice_vector") )
+				{
+					tmp.clear();
+					std::getline(fp,str);	line_cnt++; 	// red one more line
+					ss.clear(); ss.str("");			// clear 'ss' buffer
+					ss << str;
+
+					ss >> v[0] >> v[1] >> v[2];
+					this->real_vector[0] << v[0],v[1],v[2];			// set real lattice vector a = (L1,0,0);
+					this->lattice_param(0) = v[0];
+
+					std::getline(fp,str);	line_cnt++; 	// red one more line
+					ss.clear(); ss.str("");			// clear 'ss' buffer
+					ss << str;
+			
+					ss >> v[0] >> v[1] >> v[2];
+					this->real_vector[1] << v[0],v[1],v[2];			// set real lattice vector b = (L2*Cos(gamma),L2*Sin(gamma),0);
+					this->lattice_param(1) = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+					this->lattice_angle(2) = acos(v[0]/this->lattice_param(1));
+
+					std::getline(fp,str);	line_cnt++; 	// red one more line
+					ss.clear(); ss.str("");			// clear 'ss' buffer
+					ss << str;
+
+					ss >> v[0] >> v[1] >> v[2];
+					this->real_vector[2] << v[0],v[1],v[2];			// set real lattice vector c
+					this->lattice_param(2) = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+					this->lattice_angle(1) = acos(v[0]/this->lattice_param(2));
+					this->lattice_angle(0) = acos(v[1]/this->lattice_param(2)*sin(this->lattice_angle(2)) + cos(this->lattice_angle(1))*cos(this->lattice_angle(2)));
+
+					// Setting LatticeMatrix - Eigen::Matrix3d
+					//				a			b			c
+					this->lattice_matrix << this->real_vector[0](0),this->real_vector[1](0),this->real_vector[2](0),	// {a1,b1,c1
+								this->real_vector[0](1),this->real_vector[1](1),this->real_vector[2](1),	//  a2,b2,c2
+								this->real_vector[0](2),this->real_vector[1](2),this->real_vector[2](2);	//  a3,b3,c3}
+					this->lattice_matrix_transpose = this->lattice_matrix.transpose();
+					this->lattice_matrix_inverse   = this->lattice_matrix.inverse();
+
+					// PROCESSING RECIPROCAL LATTICE VECTORS
+					vv = this->real_vector[1].cross(this->real_vector[2]);	// get b x c
+					this->volume = this->real_vector[0].adjoint()*vv;	// get a.(b x c)
+
+					// u vector
+					vv = 2.*M_PI*this->real_vector[1].cross(this->real_vector[2])/this->volume;	// (b x c) / Vcell
+					this->reci_vector[0] << vv(0), vv(1), vv(2);
+					// v vector
+					vv = 2.*M_PI*this->real_vector[2].cross(this->real_vector[0])/this->volume;	// (c x a) / Vcell
+					this->reci_vector[1] << vv(0), vv(1), vv(2);
+					// w vector
+					vv = 2.*M_PI*this->real_vector[0].cross(this->real_vector[1])/this->volume;	// (a x b) / Vcell
+					this->reci_vector[2] << vv(0), vv(1), vv(2);
+
+					if( this->volume < 0. ) { this->volume = this->volume*-1.; }
+				}
 
 				if( !tmp.compare("atom") )
 				{
@@ -397,7 +454,7 @@ void Cell::CalcCoulombDerivative()
 	// Convert raw geometric derivative -> internal geometric derivative
 	for(int i=0;i<this->NumberOfAtoms;i++)
 	{	
-		AtomList[i]->UpdateDerivativeInternal(this->lattice_matrix);
+		AtomList[i]->UpdateDerivativeInternal(this->lattice_matrix_transpose);
 		// see Note on ipad (Lattice Dynamics 25 July 2022)
 	}
 	// Symmeterise Strain Derivatives
@@ -407,6 +464,54 @@ void Cell::CalcCoulombDerivative()
 
 	return;
 }
+
+// Calculate Lattice Gradient
+
+void Cell::CalcLatticeDerivative()
+{
+using std::cout, std::endl;
+
+	this->lattice_derivative.setZero();
+
+	// LatticeVector a = ( a1 , a2 , a3 ) L = 1,2,3
+	for(int i=0;i<3;i++)	// loop for 'u'
+	{	
+		// LatticeVector a = ( a1 , a2 , a3 ) L = 1,2,3
+		this->lattice_derivative(0,0) += this->lattice_sd(0,i)*this->lattice_matrix_inverse(0,i);
+		this->lattice_derivative(1,0) += this->lattice_sd(1,i)*this->lattice_matrix_inverse(0,i);
+		this->lattice_derivative(2,0) += this->lattice_sd(2,i)*this->lattice_matrix_inverse(0,i);
+		//			 L n			  L u				    n u			    
+
+		// LatticeVector b = ( b1 , b2 , b3 ) L = 1,2,3
+		this->lattice_derivative(0,1) += this->lattice_sd(0,i)*this->lattice_matrix_inverse(1,i);
+		this->lattice_derivative(1,1) += this->lattice_sd(1,i)*this->lattice_matrix_inverse(1,i);
+		this->lattice_derivative(2,1) += this->lattice_sd(2,i)*this->lattice_matrix_inverse(1,i);
+
+		// LatticeVector c = ( c1 , c2 , c3 ) L = 1,2,3
+		this->lattice_derivative(0,2) += this->lattice_sd(0,i)*this->lattice_matrix_inverse(2,i);
+		this->lattice_derivative(1,2) += this->lattice_sd(1,i)*this->lattice_matrix_inverse(2,i);
+		this->lattice_derivative(2,2) += this->lattice_sd(2,i)*this->lattice_matrix_inverse(2,i);
+	}
+
+	cout << "Dev&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+	cout << endl;
+	cout << "Lattice derivatives\n";
+	cout << endl;
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",this->lattice_derivative(0,0),this->lattice_derivative(0,1),this->lattice_derivative(0,2));
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",this->lattice_derivative(1,0),this->lattice_derivative(1,1),this->lattice_derivative(1,2));
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",this->lattice_derivative(2,0),this->lattice_derivative(2,1),this->lattice_derivative(2,2));
+	cout << endl;
+	cout << "Cell energy : "; printf("%12.12lf\n",this->mono_total_energy);
+	cout << endl;
+	cout << "Lattice Matrix\n";
+	cout << endl;
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",this->lattice_matrix(0,0),this->lattice_matrix(0,1),this->lattice_matrix(0,2));
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",this->lattice_matrix(1,0),this->lattice_matrix(1,1),this->lattice_matrix(1,2));
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",this->lattice_matrix(2,0),this->lattice_matrix(2,1),this->lattice_matrix(2,2));
+	cout << endl;
+	cout << "Dev&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n";
+}
+
 
 Cell::~Cell()
 {
@@ -439,7 +544,7 @@ void Cell::ShowBasicCellInfo() const
 	cout << endl;
 	printf("     Cell Volume      (Angs^3) : %12.6lf\n",this->volume);
 	cout << endl;
-	cout <<"                   x           y          z    (Lattice Matrix)\n";
+	cout <<"                   x           y          z    (Transpos[Lattice Matrix])\n";
 	printf("       a | %12.6lf%12.6lf%12.6lf\n",real_vector[0](0),real_vector[0](1),real_vector[0](2));
 	printf("       b | %12.6lf%12.6lf%12.6lf\n",real_vector[1](0),real_vector[1](1),real_vector[1](2));
 	printf("       c | %12.6lf%12.6lf%12.6lf\n",real_vector[2](0),real_vector[2](1),real_vector[2](2));

@@ -24,9 +24,16 @@ Eigen::Vector3d lattice_param;
 Eigen::Vector3d lattice_angle;
 
 Eigen::Matrix3d lattice_matrix;		// lattice matrix {{a1,a2,a3},{b1,b2,b3},{c1,c2,c3}}
+Eigen::Matrix3d lattice_matrix_transpose;
+Eigen::Matrix3d lattice_matrix_inverse;
 
 Eigen::Vector3d real_vector[3];		// Accessing example : real_vector[i](0,1,2)
 Eigen::Vector3d reci_vector[3];
+
+// Cell Strain Derivatives
+Eigen::Matrix3d lattice_sd;	// ordering convention - e11(xx), e22(yy), e33(zz), e12(xy), e13(xz), e23(yz) - e1, e2, e3, e6, e5, e4
+// Cell Lattice Derivatives
+Eigen::Matrix3d lattice_derivative;	// ordering convention - Not Determined yet
 
 double volume;				// Cell Volume
 
@@ -41,16 +48,11 @@ double rcut,gcut;						// Cutoff tolerances
 int h_max,k_max,l_max;
 int ih_max,ik_max,il_max;
 
-
 // Monopole Energy - i.e., point charge - e.g., core, shell, lone pair core ...
 double mono_real_energy, mono_reci_energy, mono_reci_self_energy;
 double mono_total_energy;
 
-// Cell Strain Derivatives
-Eigen::Matrix3d lattice_sd;	// ordering convention - e11(xx), e22(yy), e33(zz), e12(xy), e13(xz), e23(yz)
-				//			 e1       e2       e3       e6       e5       e4
 // PERIODIC SUM WORKING VARIABLES
-
 
 // Wtime
 std::chrono::duration<double> energy_real_wtime;
@@ -69,6 +71,8 @@ Cell( std::string );
 
 void CalcCoulombEnergy();					// () field can potentially be used for adding constraints, e.g., E fields later by overloading
 void CalcCoulombDerivative();
+
+void CalcLatticeDerivative();
 
 void ShowBasicCellInfo() const;
 void ShowEnergyDerivative() const;
