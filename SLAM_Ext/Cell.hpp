@@ -53,6 +53,13 @@ int ih_max,ik_max,il_max;
 double mono_real_energy, mono_reci_energy, mono_reci_self_energy;
 double mono_total_energy;
 
+// LONEPAIR__ Calculatiosn LonePiar involved
+double lp_scf_energy_prev;				// SCF usage ... logging prev scf energy of lone pairs
+double lp_scf_energy_curr;				// SCF usage ... logging current scf energy of lone pairs
+Eigen::Matrix4d lp_transformation_matrix;
+
+
+
 // PERIODIC SUM WORKING VARIABLES
 
 // Wtime
@@ -70,13 +77,14 @@ public:
 
 Cell( std::string );					// Initialiser
 
-// Calculations
+// Calculations - Shell/Core classics?
 virtual void CalcCoulombEnergy();			// () field can potentially be used for adding constraints, e.g., E fields later by overloading
-
 virtual void CalcCoulombDerivative();
-
 virtual void CalcLatticeDerivative();
 
+// LONEPAIR__ Calculatiosn LonePiar involved
+virtual void CalcLonePairCoulombEnergy();
+virtual void CalcLonePairCoulombDerivative();
 
 // Print things
 virtual void ShowBasicCellInfo() const;

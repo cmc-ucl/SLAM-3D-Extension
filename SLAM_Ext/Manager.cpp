@@ -43,6 +43,66 @@ void Manager::InitialisePeriodicSysParameter( Cell& C )		// Prepare Parameters -
 	C.il_max = static_cast<int>(C.gcut / C.reci_vector[2].norm());
 }
 
+								// reserved for : Cell.lp_transformation_matrix, AtomList[i/j]->cart, static_cast<Shell*>(AtomList[i/j])->shel_cart,
+const Eigen::Matrix4d& Manager::LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j )
+{
+	//Eigen::Vector3d Rij = cart_i - cart_j;
+	Eigen::Vector3d Rij = cart_j - cart_i;			// Using This Convention ... Must follow that 'cart_i' has to be a core position of LonePair of interest
+								//					      'cart_j' has to be a classic core / or the other LP
+	const double Rxy = sqrt(Rij(0)*Rij(0) + Rij(1)*Rij(1));
+	const double R   = Rij.norm();
+	double n1, n2, tmp;// dummy variables for workspace
+
+	transform_matrix.setZero();// init Return
+
+	transform_matrix(0,0) = 1.;
+
+	if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )			// if vector 'Rij' is on z-axis
+	{	transform_matrix(1,1) = 1.;
+		transform_matrix(2,2) = 1.;
+		transform_matrix(3,3) = 1.;				// set lower-right block 3x3 matrix as I
+	}
+	else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )		// if vector 'Rij' is on negative z-axis
+	{	transform_matrix(1,1) = 1.;
+		transform_matrix(2,2) = 1.;
+		transform_matrix(3,3) =-1.;				// set the matrix has xy-plane reflection
+	}
+	else
+	{	transform_matrix(3,1) = Rij(0)/R;
+		transform_matrix(3,2) = Rij(1)/R;
+		transform_matrix(3,3) = Rij(1)/R;			// set local z-axis (k') in the transformed symmetry
+
+		transform_matrix(2,1) = Rij(2)*Rij(0)/Rxy;	
+		transform_matrix(2,2) = Rij(2)*Rij(1)/Rxy;	
+		transform_matrix(2,3) = -R*sqrt(1.-Rij(2)*Rij(2)/R/R);
+	
+		n1 = 1./sqrt(transform_matrix(2,1)*transform_matrix(2,1) + transform_matrix(2,2)*transform_matrix(2,2) + transform_matrix(2,3)*transform_matrix(2,3));
+
+		for(int k=0;k<3;k++)
+		{	tmp = transform_matrix(2,k+1);
+			tmp = tmp*n1;
+			transform_matrix(2,k+1) = tmp;			// set local y-axis (j') in the transformed symmetry
+		}
+
+		transform_matrix(1,1) = n1/R * ( Rij(2)*Rij(2)*Rij(1)/Rxy + R*Rij(1)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
+		transform_matrix(1,2) = n1/R * (-Rij(2)*Rij(2)*Rij(0)/Rxy - R*Rij(0)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
+		transform_matrix(1,3) = 0.;
+
+		n2 = 1./sqrt(transform_matrix(1,1)*transform_matrix(1,1) + transform_matrix(1,2)*transform_matrix(1,2) + transform_matrix(1,3)*transform_matrix(1,3));
+
+		for(int k=0;k<3;k++)
+		{	tmp = transform_matrix(1,k+1);
+			tmp = tmp/n2;
+			transform_matrix(1,k+1) = tmp;
+		}
+	}
+
+	return transform_matrix;
+}
+
+
+////	////	////	////	////	////	////	////	////	////	////	////	////
+
 ////	Coulomb Interaction ( Periodic Summation )
 
 void Manager::CoulombMonoMonoReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )

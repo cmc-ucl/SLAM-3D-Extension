@@ -276,9 +276,14 @@ Cell::Cell( std::string input )
 }	// END 'Cell' class initilising
 
 
+////	////	////	////
+
+////	 Calculate Energy
+
+////	////	////	////
+
 void Cell::CalcCoulombEnergy()
 {
-
 	Manager manager;	// Managing class - interaction
 	Eigen::Vector3d trans;
 	Eigen::Vector3d delta_r, delta_rij;
@@ -363,6 +368,12 @@ void Cell::CalcCoulombEnergy()
 
 	return;
 }
+
+////	////	////	////
+
+////	 Calculate Derivative
+
+////	////	////	////
 
 void Cell::CalcCoulombDerivative()
 {
@@ -467,9 +478,216 @@ void Cell::CalcCoulombDerivative()
 	return;
 }
 
-// Calculate Lattice Gradient
+////	////	////	////
 
-void Cell::CalcLatticeDerivative()
+////	 LONEPAIR__ Calculate Energy
+
+////	////	////	////
+
+void Cell::CalcLonePairCoulombEnergy()
+{
+	Manager manager;	// Managing class - interaction
+	Eigen::Vector3d trans;
+	Eigen::Vector3d delta_r, delta_rij;
+	manager.InitialiseEnergy(*this);
+	//this->mono_real_energy = this->mono_reci_energy = this->mono_reci_self_energy = this->mono_total_energy = 0.;	// Initialising energies
+
+	auto start = std::chrono::system_clock::now();
+
+	for(int i=0;i<this->NumberOfAtoms;i++)
+	{	for(int j=0;j<this->NumberOfAtoms;j++)
+		{	for(int h = -this->h_max ; h <= this->h_max ; h++)
+			{	for(int k = -this->k_max ; k <= this->k_max ; k++)
+				{	for(int l = -this->l_max ; l <= this->l_max ; l++)
+					{
+						trans   = h*this->real_vector[0] + k*this->real_vector[1] + l*this->real_vector[2];	// T = h*a + k*b +l*c
+						//// START REAL SPACE
+						if( (trans.norm()) < this->rcut )
+						{	
+							if( h == 0 && k == 0 && l == 0 )
+							{	
+							    if( i != j )
+							    {
+								manager.CoulombMonoMonoReal(*this,i,j,trans);
+							    }	// h=k=l=0 (central image) - excluding self interaction
+							}
+							else
+							{
+								manager.CoulombMonoMonoReal(*this,i,j,trans);
+							}
+
+							this->energy_real_sum_cnt++;
+						}
+						//// END REAL SPACE
+					}// end l
+				}// end k
+			}//end h
+		}// end j
+	}// end i
+
+	auto end = std::chrono::system_clock::now();
+
+	this->energy_real_wtime = (end - start);
+
+	start = std::chrono::system_clock::now();
+  
+	for(int i=0;i<this->NumberOfAtoms;i++)
+	{	for(int j=0;j<this->NumberOfAtoms;j++)
+		{	for(int h = -this->ih_max ; h <= this->ih_max ; h++)
+			{	for(int k = -this->ik_max ; k <= this->ik_max ; k++)
+				{	for(int l = -this->il_max ; l <= this->il_max ; l++)
+					{
+						trans   = h*this->reci_vector[0] + k*this->reci_vector[1] + l*this->reci_vector[2];	// G = h*2pi*u + k*2pi*v + l*2pi*w
+
+						if( (trans.norm()) < this->gcut )
+						{
+							if( h == 0 && k == 0 && l == 0 )
+							{
+							    if( i == j )	// Self interaction
+							    {	
+								manager.CoulombMonoMonoSelf(*this,i,j,trans);
+							    }
+							}
+							else
+							{	
+								manager.CoulombMonoMonoReci(*this,i,j,trans);
+							}
+
+							this->energy_reci_sum_cnt++;
+						}
+					}// end l
+				}// end k
+			}//end h
+		}// end j
+	}// end i
+
+	// Wtime measure
+	end = std::chrono::system_clock::now();
+	this->energy_reci_wtime = (end - start);
+
+	// Calculate Totl Energy
+	this->mono_total_energy = this->mono_real_energy + this->mono_reci_energy + this->mono_reci_self_energy;
+
+	return;
+}
+
+
+////	////	////	////
+
+////	 LONEPAIR__ Calculate Derivative
+
+////	////	////	////
+
+void Cell::CalcLonePairCoulombDerivative()
+{
+	Manager manager;
+	Eigen::Vector3d trans;
+	Eigen::Vector3d delta_rij, delta_r;
+	manager.InitialiseDerivative(*this);
+
+	auto start = std::chrono::system_clock::now();
+
+	for(int i=0;i<this->NumberOfAtoms;i++)
+	{	for(int j=0;j<this->NumberOfAtoms;j++)
+		{	for(int h = -this->h_max ; h <= this->h_max ; h++)
+			{	for(int k = -this->k_max ; k <= this->k_max ; k++)
+				{	for(int l = -this->l_max ; l <= this->l_max ; l++)
+					{
+						//// START REAL SPACE
+						trans   = h*this->real_vector[0] + k*this->real_vector[1] + l*this->real_vector[2];	// T = h*a + k*b +l*c
+
+						if( (trans.norm()) < this->rcut )
+						{	
+							if( h == 0 && k == 0 && l == 0 )
+							{	
+							    if( i != j )
+							    {	
+								// Raw Geometric Derivatives
+								manager.CoulombDerivativeReal(*this,i,j,trans);
+								// Strain Derivatives Real Space Contribution
+								manager.StrainDerivativeReal(*this,i,j,trans);
+							    }	// h=k=l=0 (central image) - excluding self interaction
+							}
+							else
+							{
+								// Raw Geometric Derivatives
+								manager.CoulombDerivativeReal(*this,i,j,trans);
+								// Strain Derivatives Real Space Contribution
+								manager.StrainDerivativeReal(*this,i,j,trans);
+							}
+
+							this->derivative_real_sum_cnt++;
+						}
+						//// END REAL SPACE
+					}// end l
+				}// end k
+			}//end h
+		}// end j
+	}// end i
+	auto end = std::chrono::system_clock::now();
+	this->derivative_real_wtime = (end - start);
+
+	start = std::chrono::system_clock::now();
+
+	for(int i=0;i<this->NumberOfAtoms;i++)
+	{	for(int j=0;j<this->NumberOfAtoms;j++)
+		{	for(int h = -this->ih_max ; h <= this->ih_max ; h++)
+			{	for(int k = -this->ik_max ; k <= this->ik_max ; k++)
+				{	for(int l = -this->il_max ; l <= this->il_max ; l++)
+					{
+						//## START RECIPROCAL SPACE
+						trans   = h*this->reci_vector[0] + k*this->reci_vector[1] + l*this->reci_vector[2];	// G = h*2pi*u + k*2pi*v + l*2pi*w
+						
+						if( (trans.norm()) < this->gcut )
+						{
+							if( h == 0 && k == 0 && l == 0 )
+							{
+								if( i == j )	// Self interaction
+								{
+									manager.CoulombDerivativeSelf(*this,i,j,trans);	// This calculation is not necessary for a system only with point charges
+															// In the presence of ShellModel ions, there are non-zero derivatives by shell-core separation
+									manager.StrainDerivativeSelf(*this,i,j,trans);
+								}
+							}
+							else
+							{	// Raw Geometric Derivative
+								manager.CoulombDerivativeReci(*this,i,j,trans);
+								// Strain Derivatives Reciprocal Space Contribution	// w.r.t 'r', 'V', 'G'
+								manager.StrainDerivativeReci(*this,i,j,trans);
+							}
+
+							this->derivative_reci_sum_cnt++;
+						}
+					}// end l
+				}// end k
+			}//end h
+		}// end j
+	}// end i
+
+	end = std::chrono::system_clock::now();
+	this->derivative_reci_wtime = (end - start);
+
+	// Convert raw geometric derivative -> internal geometric derivative
+	for(int i=0;i<this->NumberOfAtoms;i++)
+	{	
+		AtomList[i]->UpdateDerivativeInternal(this->lattice_matrix_transpose);
+		// see Note on ipad (Lattice Dynamics 25 July 2022)
+	}
+	// Symmeterise Strain Derivatives
+	this->lattice_sd(1,0) = this->lattice_sd(0,1);
+	this->lattice_sd(2,0) = this->lattice_sd(0,2);
+	this->lattice_sd(2,1) = this->lattice_sd(1,2);
+
+	return;
+}
+
+////	////	////	////
+
+//// Calculate Lattice Gradient
+
+////	////	////	////
+
+void Cell::CalcLatticeDerivative() 	// Independe to LonePair Derivatives ... as long as the Lattice Strain Derivatives are measured
 {
 	this->lattice_derivative.setZero();
 
@@ -495,6 +713,15 @@ void Cell::CalcLatticeDerivative()
 }
 
 
+
+
+////	////	////	////
+
+////	Cell Destructor
+
+////	////	////	////
+
+
 Cell::~Cell()
 {
 	for(auto i=0;i<this->NumberOfAtoms;i++)
@@ -502,7 +729,6 @@ Cell::~Cell()
 		delete AtomList[i];
 	}
 }
-
 
 ////	////	////	////
 

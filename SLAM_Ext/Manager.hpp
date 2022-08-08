@@ -14,6 +14,8 @@ void InitialiseDerivative( Cell& C );						// Eigen::Vec/Mat::setZero(); (for ad
 
 void InitialisePeriodicSysParameter( Cell& C );					// Parameters ... Spliting Workload of Lattice Sum (Real/Reciprocal)	// Under Dev 28 Jul Thurs 2022
 
+const Eigen::Matrix4d& LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j );
+
 // Monopole - Monopole Interaction (charge vs charge)
 // decltype intrinsic - tells 'core-core', 'shell-core', 'core-shgl'
 void CoulombMonoMonoReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
