@@ -3,6 +3,8 @@
 
 #include <Eigen/Core>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 
 static int cnt = 0;
@@ -165,6 +167,19 @@ public:
 	}
 };
 
+
+#define RADIAL_Pb_KNOT "lp_radial/Pb_radial_knot.dat"
+#define RADIAL_Pb_S    "lp_radial/Pb_radial_s.dat"
+#define RADIAL_Pb_P    "lp_radial/Pb_radial_p.dat"
+
+#define RADIAL_Sn_KNOT "lp_radial/Sn_radial_knot.dat"
+#define RADIAL_Sn_S    "lp_radial/Sn_radial_s.dat"
+#define RADIAL_Sn_P    "lp_radial/Sn_radial_p.dat"
+
+#define RADIAL_Bi_KNOT "lp_radial/Bi_radial_knot.dat"
+#define RADIAL_Bi_S    "lp_radial/Bi_radial_s.dat"
+#define RADIAL_Bi_P    "lp_radial/Bi_radial_p.dat"
+
 class LonePair : public Atom
 {
 
@@ -177,18 +192,114 @@ private:
 	double lp_lambda;	// Lone pair s <-> p energy sepration
 	double lp_gs_energy;	// Lone pair ground state (gs) energy
 
-	Eigen::Vector4d lp_eigenvalue;
-	Eigen::Matrix4d lp_eigenvector;
+	int lp_gs_index;		// Ground State Index		// This variable is going to be set by manager class member function
+	Eigen::EigenSolver<Eigen::Matrix4d> lp_eigensolver;	// EigenSolver itself contains evals/evecs ... accessed by .eigenvalues() / .eigenvectors() // elements of vectors and matrices with type of std::complex<double?>
 
 	Eigen::Matrix4d lp_h_matrix;			// Lone pair Hamiltonian Matrix;
 	Eigen::Matrix4d lp_h_matrix_derivative[3];	// 1,2,3 for 'x', 'y', 'z';
 	
+	// RadialWaveFunctions
+	int lp_spline_knot_count;
+	std::vector<double> lp_r;
+	std::vector<double> lp_r_s_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
+	std::vector<double> lp_r_p_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
+
 public:
 		
 	LonePair( const double frac_x, const double frac_y, const double frac_z, std::string species, std::string type, const Eigen::Vector3d* lattice_vector )
-	: Atom(frac_x,frac_y,frac_z,species,type,lattice_vector) {}
+	: Atom(frac_x,frac_y,frac_z,species,type,lattice_vector)
+	{
+		std::ifstream fp;
+		std::string str;
+		std::stringstream ss;
+		double a,b,c,d;
 
-	virtual void SetFeature( const double core_charge, const double extra_charge=0, const double val1=0, const double val2=0 ) override		// VirtualOverriding - must be in the same format
+		std::string knot_file, radial_s_file, radial_p_file;
+
+		if( species == "Pb" )
+		{	knot_file = RADIAL_Pb_KNOT;	radial_s_file = RADIAL_Pb_S;	radial_p_file = RADIAL_Pb_P;	}
+		else if( species == "Sn" )
+		{	knot_file = RADIAL_Sn_KNOT;	radial_s_file = RADIAL_Sn_S;	radial_p_file = RADIAL_Sn_P;	}
+		else if( species == "Bi" )
+		{	knot_file = RADIAL_Bi_KNOT;	radial_s_file = RADIAL_Bi_S;	radial_p_file = RADIAL_Bi_P;	}
+		else
+		{	std::cout << "No matching radial wavefunction data fount for lone pair species ...\n";
+			std::exit(EXIT_FAILURE);
+		}
+
+		fp.open(knot_file);
+		if( fp.is_open() )
+		{
+			std::getline(fp,str);
+			ss << str;	ss >> this->lp_spline_knot_count;	// Get Number Of Knots
+			for(int i=0;i<this->lp_spline_knot_count;i++)
+			{	ss.clear(); ss.str("");
+				std::getline(fp,str);
+				ss << str;
+				ss >> a;
+				this->lp_r.push_back(a);
+			}
+			fp.close();
+		}
+		else
+		{	std::cout << "Failed to read file : " << knot_file << std::endl;
+			std::exit(EXIT_FAILURE);
+		}
+
+		fp.open(radial_s_file);
+		if( fp.is_open() )
+		{	std::getline(fp,str);
+			for(int i=0;i<this->lp_spline_knot_count-1;i++)
+			{	ss.clear(); ss.str("");
+				std::getline(fp,str);
+				ss << str;
+				ss >> a >> b >> c >> d;
+				
+				this->lp_r_s_function[0].push_back(a);
+				this->lp_r_s_function[1].push_back(b);
+				this->lp_r_s_function[2].push_back(c);
+				this->lp_r_s_function[3].push_back(d);
+			}
+			fp.close();
+		}
+		else
+		{	std::cout << "Failed to read file : " << radial_s_file << std::endl;
+			std::exit(EXIT_FAILURE);
+		}
+
+		fp.open(radial_p_file);
+		if( fp.is_open() )
+		{	std::getline(fp,str);
+			for(int i=0;i<this->lp_spline_knot_count-1;i++)
+			{	ss.clear(); ss.str("");
+				std::getline(fp,str);
+				ss << str;
+				ss >> a >> b >> c >> d;
+	
+				this->lp_r_p_function[0].push_back(a);
+				this->lp_r_p_function[1].push_back(b);
+				this->lp_r_p_function[2].push_back(c);
+				this->lp_r_p_function[3].push_back(d);
+			}
+			fp.close();
+		}
+		else
+		{	std::cout << "Failed to read file : " << radial_p_file << std::endl;
+			std::exit(EXIT_FAILURE);
+		}
+
+		//Confirmed
+		//for(int i=0;i<this->lp_spline_knot_count;i++)
+		//{	printf("%20.6e\n",this->lp_r[i]);	}
+		//for(int i=0;i<this->lp_spline_knot_count-1;i++)
+		//{	printf("%20.6e%20.6e%20.6e%20.6e\n",this->lp_r_s_function[0][i],this->lp_r_s_function[1][i],this->lp_r_s_function[2][i],this->lp_r_s_function[3][i]);	}
+		//for(int i=0;i<this->lp_spline_knot_count-1;i++)
+		//{	printf("%20.6e%20.6e%20.6e%20.6e\n",this->lp_r_p_function[0][i],this->lp_r_p_function[1][i],this->lp_r_p_function[2][i],this->lp_r_p_function[3][i]);	}
+
+	}	// end Constructor
+
+	// VirtualOverriding - must be in the same format
+	virtual void SetFeature( const double core_charge, const double extra_charge=0, const double val1=0, const double val2=0 ) override
 	{
 		Atom::SetFeature(core_charge);	// Set LP core charge
 		this->lp_charge = extra_charge;

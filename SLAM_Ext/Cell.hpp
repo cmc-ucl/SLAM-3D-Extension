@@ -56,13 +56,14 @@ double mono_total_energy;
 // LONEPAIR__ Calculatiosn LonePiar involved
 double lp_scf_energy_prev;				// SCF usage ... logging prev scf energy of lone pairs
 double lp_scf_energy_curr;				// SCF usage ... logging current scf energy of lone pairs
+
+int scf_iter_max;
+
 Eigen::Matrix4d lp_transformation_matrix;
 
 
 
-// PERIODIC SUM WORKING VARIABLES
-
-// Wtime
+// Wtime Variables
 std::chrono::duration<double> energy_real_wtime;
 std::chrono::duration<double> energy_reci_wtime;
 std::chrono::duration<double> derivative_real_wtime;		// std::cout << this->energy_wtime.count() << " s\n";

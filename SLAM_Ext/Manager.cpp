@@ -1,9 +1,5 @@
 #include "Manager.hpp"
 
-#include <iostream>
-#include <cmath>
-#include <Eigen/Dense>
-
 void Manager::InitialiseEnergy( Cell& C )
 {
 	C.energy_real_sum_cnt = 0;
@@ -19,8 +15,7 @@ void Manager::InitialiseDerivative( Cell& C )
 	C.lattice_sd.setZero();										// Initialise Strain Drivative Field
 }
 
-////	Optimise Periodic Summation Workload
-
+//	Optimise Periodic Summation Workload
 void Manager::InitialisePeriodicSysParameter( Cell& C )		// Prepare Parameters - Periodic Summation
 {
 	int NumberOfObject = 0;
@@ -43,67 +38,12 @@ void Manager::InitialisePeriodicSysParameter( Cell& C )		// Prepare Parameters -
 	C.il_max = static_cast<int>(C.gcut / C.reci_vector[2].norm());
 }
 
-								// reserved for : Cell.lp_transformation_matrix, AtomList[i/j]->cart, static_cast<Shell*>(AtomList[i/j])->shel_cart,
-const Eigen::Matrix4d& Manager::LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j )
-{
-	//Eigen::Vector3d Rij = cart_i - cart_j;
-	Eigen::Vector3d Rij = cart_j - cart_i;			// Using This Convention ... Must follow that 'cart_i' has to be a core position of LonePair of interest
-								//					      'cart_j' has to be a classic core / or the other LP
-	const double Rxy = sqrt(Rij(0)*Rij(0) + Rij(1)*Rij(1));
-	const double R   = Rij.norm();
-	double n1, n2, tmp;// dummy variables for workspace
-
-	transform_matrix.setZero();// init Return
-
-	transform_matrix(0,0) = 1.;
-
-	if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )			// if vector 'Rij' is on z-axis
-	{	transform_matrix(1,1) = 1.;
-		transform_matrix(2,2) = 1.;
-		transform_matrix(3,3) = 1.;				// set lower-right block 3x3 matrix as I
-	}
-	else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )		// if vector 'Rij' is on negative z-axis
-	{	transform_matrix(1,1) = 1.;
-		transform_matrix(2,2) = 1.;
-		transform_matrix(3,3) =-1.;				// set the matrix has xy-plane reflection
-	}
-	else
-	{	transform_matrix(3,1) = Rij(0)/R;
-		transform_matrix(3,2) = Rij(1)/R;
-		transform_matrix(3,3) = Rij(1)/R;			// set local z-axis (k') in the transformed symmetry
-
-		transform_matrix(2,1) = Rij(2)*Rij(0)/Rxy;	
-		transform_matrix(2,2) = Rij(2)*Rij(1)/Rxy;	
-		transform_matrix(2,3) = -R*sqrt(1.-Rij(2)*Rij(2)/R/R);
-	
-		n1 = 1./sqrt(transform_matrix(2,1)*transform_matrix(2,1) + transform_matrix(2,2)*transform_matrix(2,2) + transform_matrix(2,3)*transform_matrix(2,3));
-
-		for(int k=0;k<3;k++)
-		{	tmp = transform_matrix(2,k+1);
-			tmp = tmp*n1;
-			transform_matrix(2,k+1) = tmp;			// set local y-axis (j') in the transformed symmetry
-		}
-
-		transform_matrix(1,1) = n1/R * ( Rij(2)*Rij(2)*Rij(1)/Rxy + R*Rij(1)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
-		transform_matrix(1,2) = n1/R * (-Rij(2)*Rij(2)*Rij(0)/Rxy - R*Rij(0)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
-		transform_matrix(1,3) = 0.;
-
-		n2 = 1./sqrt(transform_matrix(1,1)*transform_matrix(1,1) + transform_matrix(1,2)*transform_matrix(1,2) + transform_matrix(1,3)*transform_matrix(1,3));
-
-		for(int k=0;k<3;k++)
-		{	tmp = transform_matrix(1,k+1);
-			tmp = tmp/n2;
-			transform_matrix(1,k+1) = tmp;
-		}
-	}
-
-	return transform_matrix;
-}
-
 
 ////	////	////	////	////	////	////	////	////	////	////	////	////
 
 ////	Coulomb Interaction ( Periodic Summation )
+
+////	////	////	////	////	////	////	////	////	////	////	////	////
 
 void Manager::CoulombMonoMonoReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
 {
@@ -943,4 +883,165 @@ void Manager::StrainDerivativeReci( Cell& C, const int i, const int j, const Eig
 		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
 		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
         }       
-}       
+}
+
+
+
+////	////	////	////	////	////	////
+
+////	LonePair Related Member Functions
+
+////	////	////	////	////	////	////
+
+void Manager::InitialiseLonePairEnergy( Cell& C )
+{
+
+}
+
+void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
+{
+	std::vector<double> v(4);
+
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )
+		{	static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.compute(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix,true);
+			// Diagonalise LonePair H matrix, compute_evec='true'
+		}
+		
+		v[0] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(0).real();
+		v[1] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(1).real();
+		v[2] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(2).real();
+		v[3] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(3).real();
+		
+		static_cast<LonePair*>(C.AtomList[i])->lp_gs_index = std::min_element(v.begin(),v.end()) - v.begin();
+		// Get LonePair GroundState Index
+	}
+}
+
+const Eigen::Matrix4d& Manager::LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j )
+{								// reserved for : Cell.lp_transformation_matrix, AtomList[i/j]->cart, static_cast<Shell*>(AtomList[i/j])->shel_cart,
+	//Eigen::Vector3d Rij = cart_i - cart_j;
+	Eigen::Vector3d Rij = cart_j - cart_i;			// Using This Convention ... Must follow that 'cart_i' has to be a core position of LonePair of interest
+								//					      'cart_j' has to be a classic core / or the other LP
+	const double Rxy = sqrt(Rij(0)*Rij(0) + Rij(1)*Rij(1));
+	const double R   = Rij.norm();
+	double n1, n2, tmp;// dummy variables for workspace
+
+	transform_matrix.setZero();// init Return
+
+	transform_matrix(0,0) = 1.;
+
+	if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )			// if vector 'Rij' is on z-axis
+	{	transform_matrix(1,1) = 1.;
+		transform_matrix(2,2) = 1.;
+		transform_matrix(3,3) = 1.;				// set lower-right block 3x3 matrix as I
+	}
+	else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )		// if vector 'Rij' is on negative z-axis
+	{	transform_matrix(1,1) = 1.;
+		transform_matrix(2,2) = 1.;
+		transform_matrix(3,3) =-1.;				// set the matrix has xy-plane reflection
+	}
+	else
+	{	transform_matrix(3,1) = Rij(0)/R;
+		transform_matrix(3,2) = Rij(1)/R;
+		transform_matrix(3,3) = Rij(1)/R;			// set local z-axis (k') in the transformed symmetry
+
+		transform_matrix(2,1) = Rij(2)*Rij(0)/Rxy;	
+		transform_matrix(2,2) = Rij(2)*Rij(1)/Rxy;	
+		transform_matrix(2,3) = -R*sqrt(1.-Rij(2)*Rij(2)/R/R);
+	
+		n1 = 1./sqrt(transform_matrix(2,1)*transform_matrix(2,1) + transform_matrix(2,2)*transform_matrix(2,2) + transform_matrix(2,3)*transform_matrix(2,3));
+
+		for(int k=0;k<3;k++)
+		{	tmp = transform_matrix(2,k+1);
+			tmp = tmp*n1;
+			transform_matrix(2,k+1) = tmp;			// set local y-axis (j') in the transformed symmetry
+		}
+
+		transform_matrix(1,1) = n1/R * ( Rij(2)*Rij(2)*Rij(1)/Rxy + R*Rij(1)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
+		transform_matrix(1,2) = n1/R * (-Rij(2)*Rij(2)*Rij(0)/Rxy - R*Rij(0)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
+		transform_matrix(1,3) = 0.;
+
+		n2 = 1./sqrt(transform_matrix(1,1)*transform_matrix(1,1) + transform_matrix(1,2)*transform_matrix(1,2) + transform_matrix(1,3)*transform_matrix(1,3));
+
+		for(int k=0;k<3;k++)
+		{	tmp = transform_matrix(1,k+1);
+			tmp = tmp/n2;
+			transform_matrix(1,k+1) = tmp;
+		}
+	}
+
+	return transform_matrix;
+}
+
+void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	Eigen::Vector3d Rij;
+        // TransVector = h*a + k*b + l*c
+        // Rij         = Ai.r - Aj.r - TransVector;
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {
+	
+	}
+	else if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
+	{
+
+	}
+	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" )
+	{
+
+	}
+	else if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" )
+	{
+
+	}
+	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )
+	{
+
+	}
+}
+
+void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	Eigen::Vector3d Rij;
+        // TransVector = h*a + k*b + l*c
+        // Rij         = Ai.r - Aj.r - TransVector;
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {
+	
+	}
+	else if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
+	{
+
+	}
+	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" )
+	{
+
+	}
+	else if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" )
+	{
+
+	}
+	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )
+	{
+
+	}
+}
+
+void Manager::CoulombLonePairReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )      
+{
+	double Qi,Qj;
+	Eigen::Vector3d Rij;
+        // TransVector = h*a + k*b + l*c
+        // Rij         = Ai.r - Aj.r - TransVector;
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    
+        {
+	
+	}
+}

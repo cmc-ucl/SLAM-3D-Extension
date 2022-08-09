@@ -486,12 +486,17 @@ void Cell::CalcCoulombDerivative()
 
 void Cell::CalcLonePairCoulombEnergy()
 {
-	Manager manager;	// Managing class - interaction
-	Eigen::Vector3d trans;
-	Eigen::Vector3d delta_r, delta_rij;
-	manager.InitialiseEnergy(*this);
-	//this->mono_real_energy = this->mono_reci_energy = this->mono_reci_self_energy = this->mono_total_energy = 0.;	// Initialising energies
+	Manager manager;
+	Eigen::Vector3d trans;			// Translation Vector
+	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
+	manager.InitialiseLonePairEnergy(*this);
+
+
+this->scf_iter_max = 5000;			// THIS NEED FURTHER MODIFICATION ... 09 Aug 2022
+
+for(int n=0;n<this->scf_iter_max;n++)
+{
 	auto start = std::chrono::system_clock::now();
 
 	for(int i=0;i<this->NumberOfAtoms;i++)
@@ -508,12 +513,12 @@ void Cell::CalcLonePairCoulombEnergy()
 							{	
 							    if( i != j )
 							    {
-								manager.CoulombMonoMonoReal(*this,i,j,trans);
+								manager.CoulombLonePairReal(*this,i,j,trans);
 							    }	// h=k=l=0 (central image) - excluding self interaction
 							}
 							else
 							{
-								manager.CoulombMonoMonoReal(*this,i,j,trans);
+								manager.CoulombLonePairReal(*this,i,j,trans);
 							}
 
 							this->energy_real_sum_cnt++;
@@ -527,7 +532,7 @@ void Cell::CalcLonePairCoulombEnergy()
 
 	auto end = std::chrono::system_clock::now();
 
-	this->energy_real_wtime = (end - start);
+	//
 
 	start = std::chrono::system_clock::now();
   
@@ -545,12 +550,12 @@ void Cell::CalcLonePairCoulombEnergy()
 							{
 							    if( i == j )	// Self interaction
 							    {	
-								manager.CoulombMonoMonoSelf(*this,i,j,trans);
+								manager.CoulombLonePairSelf(*this,i,j,trans);
 							    }
 							}
 							else
 							{	
-								manager.CoulombMonoMonoReci(*this,i,j,trans);
+								manager.CoulombLonePairReci(*this,i,j,trans);
 							}
 
 							this->energy_reci_sum_cnt++;
@@ -563,10 +568,10 @@ void Cell::CalcLonePairCoulombEnergy()
 
 	// Wtime measure
 	end = std::chrono::system_clock::now();
-	this->energy_reci_wtime = (end - start);
 
-	// Calculate Totl Energy
-	this->mono_total_energy = this->mono_real_energy + this->mono_reci_energy + this->mono_reci_self_energy;
+	// Diagonalisations : Determine GroundStates of LonePairs
+
+}// end SCF
 
 	return;
 }
@@ -580,9 +585,9 @@ void Cell::CalcLonePairCoulombEnergy()
 
 void Cell::CalcLonePairCoulombDerivative()
 {
-	Manager manager;
-	Eigen::Vector3d trans;
-	Eigen::Vector3d delta_rij, delta_r;
+	Manager manager;			// Managing Interactions + Calculations
+	Eigen::Vector3d trans;			// Lattice Translation Vector
+	Eigen::Vector3d delta_rij, delta_r;	// Interatomic Diatance
 	manager.InitialiseDerivative(*this);
 
 	auto start = std::chrono::system_clock::now();
