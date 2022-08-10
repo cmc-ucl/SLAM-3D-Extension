@@ -1197,21 +1197,6 @@ void Manager::CoulombLonePairDerivativeReal( Cell& C, const int i, const int j, 
 		C.AtomList[j]->cart_gd -= intact*Rij;
         }       
         
-        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
-        {	
-		// LonePair Core - Core
-		Qi = C.AtomList[i]->charge;
-		Qj = C.AtomList[j]->charge;
-		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
-		r_norm = Rij.norm();
-		r_sqr  = r_norm*r_norm;
-
-		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
-
-		C.AtomList[i]->cart_gd += intact*Rij;
-		C.AtomList[j]->cart_gd -= intact*Rij;
-        }       
-
 	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" ) 
         {
 		// Core - LonePair Core
