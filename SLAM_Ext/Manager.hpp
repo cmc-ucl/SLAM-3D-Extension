@@ -39,16 +39,24 @@ void StrainDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vecto
 
 //
 void InitialiseLonePairEnergy( Cell& C );
+void InitialiseLonePairDerivative( Cell& C );
 void GetLonePairGroundState( Cell& C );
 
 /* Return Transformation Matrix - Transformation Matrix (T) rotates global symmetry to local, e.g., Hij = Tai Tbj Hab'	- inverse transform of H' (local) matrix */
 const Eigen::Matrix4d& LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j );
 
 // Interaction - Lone Pair
-void CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
-void CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
-void CoulombLonePairReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+void CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );	// scf flag for calculating 
+void CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );
+void CoulombLonePairReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );
 
+void CoulombLonePairDerivativeReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+void CoulombLonePairDerivativeSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+void CoulombLonePairDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+
+void StrainLonePairDerivativeReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+void StrainLonePairDerivativeSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+void StrainLonePairDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 
 };
 

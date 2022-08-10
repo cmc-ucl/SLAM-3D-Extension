@@ -29,7 +29,6 @@ void Manager::InitialisePeriodicSysParameter( Cell& C )		// Prepare Parameters -
 	C.rcut  = std::sqrt(-log(C.accuracy)*C.sigma*C.sigma);
 	C.gcut  = 2./C.sigma*std::sqrt(-log(C.accuracy));
 
-
 	C.h_max  = static_cast<int>(C.rcut / C.real_vector[0].norm());
 	C.k_max  = static_cast<int>(C.rcut / C.real_vector[1].norm());
 	C.l_max  = static_cast<int>(C.rcut / C.real_vector[2].norm());
@@ -896,6 +895,11 @@ void Manager::StrainDerivativeReci( Cell& C, const int i, const int j, const Eig
 void Manager::InitialiseLonePairEnergy( Cell& C )
 {
 
+} 
+
+void Manager::InitialiseLonePairDerivative( Cell& C )
+{
+
 }
 
 void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
@@ -975,7 +979,11 @@ const Eigen::Matrix4d& Manager::LonePairGetTransformationMatrix( Eigen::Matrix4d
 	return transform_matrix;
 }
 
-void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
+
+////	LonePair_Energy
+
+void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )
 {
 	double Qi,Qj;
 	Eigen::Vector3d Rij;
@@ -984,64 +992,732 @@ void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eige
 
         if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
         {
+		if( is_first_scf == true )
+		{
+			// LonePair Core - Core
+			Qi  = C.AtomList[i]->charge;	// Get Lone CoreCharge
+			Qj  = C.AtomList[j]->charge;	// Get CoreCharge
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+		}
+	}
 	
-	}
-	else if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
+	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
 	{
+		if( is_first_scf == true )
+		{
+			// Core - LonePair Core
+			Qi  = C.AtomList[i]->charge;	// Get CoreCharge
+			Qj  = C.AtomList[j]->charge;	// Get Lone CoreCharge
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+		}
 
 	}
-	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" )
+
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" )
 	{
+		if( is_first_scf == true )
+		{
+			// LonePair Core - Shell Core
+			Qi  = C.AtomList[i]->charge;	// Get Lone CoreCharge
+			Qj  = C.AtomList[j]->charge;	// Get Shel CoreCharge
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+
+			// LonePair Core - Shell Shell
+			Qi  = C.AtomList[i]->charge;
+			Qj  = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+			Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+		}
 
 	}
-	else if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" )
+
+	if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" )
 	{
+		if( is_first_scf == true )
+		{
+			// Shell Core - LonePair Core
+			Qi  = C.AtomList[i]->charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+
+			// Shell Shell - LonePair Core
+			Qi  = static_cast<Shell*>(C.AtomList[i])->shel_charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+		}
 
 	}
-	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )
-	{
 
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )
+	{
+		if( is_first_scf == true )
+		{
+			// LonePair Core - LonePair Core
+			Qi  = C.AtomList[i]->charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
+		}
 	}
 }
 
-void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )
 {
 	double Qi,Qj;
 	Eigen::Vector3d Rij;
         // TransVector = h*a + k*b + l*c
         // Rij         = Ai.r - Aj.r - TransVector;
+
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )	// SelfEnergy by LonePair Cores
+	{
+		if( is_first_scf == true )
+		{
+			Qi  = C.AtomList[i]->charge;
+			Qj  = C.AtomList[j]->charge;
+			C.mono_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
+		}
+	}
+}
+
+void Manager::CoulombLonePairReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )
+{
+	double Qi,Qj;
+	double g_norm = TransVector.norm();
+	double g_sqr  = g_norm*g_norm;
+	Eigen::Vector3d Rij;
+        // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
+        // Rij            = Ai.r - Aj.r;
 
         if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
         {
+		if( is_first_scf == true )
+		{
+			// LonePair Core - Core
+			Qi  = C.AtomList[i]->charge;	// Get Lone CoreCharge
+			Qj  = C.AtomList[j]->charge;	// Get CoreCharge
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+		}
+	}
 	
-	}
-	else if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
+	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
 	{
+		if( is_first_scf == true )
+		{
+			// Core - LonePair Core
+			Qi  = C.AtomList[i]->charge;	// Get CoreCharge
+			Qj  = C.AtomList[j]->charge;	// Get Lone CoreCharge
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+		}
 
 	}
-	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" )
+
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" )
 	{
+		if( is_first_scf == true )
+		{
+			// LonePair Core - Shell Core
+			Qi  = C.AtomList[i]->charge;	// Get Lone CoreCharge
+			Qj  = C.AtomList[j]->charge;	// Get Shel CoreCharge
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+
+			// LonePair Core - Shell Shell
+			Qi  = C.AtomList[i]->charge;
+			Qj  = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+			Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+		}
 
 	}
-	else if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" )
+
+	if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" )
 	{
+		if( is_first_scf == true )
+		{
+			// Shell Core - LonePair Core
+			Qi  = C.AtomList[i]->charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+
+			// Shell Shell - LonePair Core
+			Qi  = static_cast<Shell*>(C.AtomList[i])->shel_charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+		}
 
 	}
-	else if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )
-	{
 
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )
+	{
+		if( is_first_scf == true )
+		{
+			// LonePair Core - LonePair Core
+			Qi  = C.AtomList[i]->charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+			C.mono_reci_energy += (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * cos( TransVector.adjoint()*Rij ) * C.TO_EV;
+		}
 	}
 }
 
-void Manager::CoulombLonePairReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )      
+////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
+
+////	LonePair_Derivative
+
+void Manager::CoulombLonePairDerivativeReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
 {
 	double Qi,Qj;
+	double r_norm,r_sqr;
 	Eigen::Vector3d Rij;
-        // TransVector = h*a + k*b + l*c
-        // Rij         = Ai.r - Aj.r - TransVector;
+        // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
+        // Rij            = Ai.r - Aj.r - TransVector;
+	double intact;
 
-        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {	
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+        }       
+        
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {	
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+        }       
+
+	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" ) 
         {
+		// Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
 	
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+        }       
+        
+	if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" ) 
+        {
+		// Shell Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+	
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+
+		// Shell Shell - LonePair Core
+		Qi = static_cast<Shell*>(C.AtomList[i])->shel_charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		static_cast<Shell*>(C.AtomList[i])->shel_cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+        }       
+        
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" ) 
+        {
+		// LonePair Core - Shell Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+	
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+		
+		// LonePair Core - Shell Shell
+		Qi = C.AtomList[i]->charge;
+		Qj = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+		Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		static_cast<Shell*>(C.AtomList[j])->shel_cart_gd -= intact*Rij;
+        }
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    // Handling Core - Core (i.e., charge charge interaction);
+        {	
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.AtomList[i]->cart_gd += intact*Rij;
+		C.AtomList[j]->cart_gd -= intact*Rij;
+        }       
+
+}
+
+void Manager::CoulombLonePairDerivativeSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	double r_norm,r_sqr;
+	Eigen::Vector3d Rij;
+	
+	double intact;
+
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" ) 
+        {
+
+	}
+}       
+
+void Manager::CoulombLonePairDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	double g_norm = TransVector.norm();
+	double g_sqr  = g_norm*g_norm;
+	Eigen::Vector3d Rij;
+        // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
+        // Rij            = Ai.r - Aj.r;
+	double intact;
+        
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {	
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		C.AtomList[i]->cart_gd += intact * TransVector;
+		C.AtomList[j]->cart_gd -= intact * TransVector;
+        }       
+        
+	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" ) 
+        {	
+		// Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		C.AtomList[i]->cart_gd += intact * TransVector;
+		C.AtomList[j]->cart_gd -= intact * TransVector;
+        }       
+        
+	if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" ) 
+        {
+		// Shell Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		C.AtomList[i]->cart_gd += intact * TransVector;
+		C.AtomList[j]->cart_gd -= intact * TransVector;
+
+		// Shell Shell - LonePair Core
+		Qi = static_cast<Shell*>(C.AtomList[i])->shel_charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart;
+	
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		static_cast<Shell*>(C.AtomList[i])->shel_cart_gd += intact * TransVector;
+		C.AtomList[j]->cart_gd -= intact * TransVector;
+        }       
+        
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" ) 
+        {
+		// LonePair Core - Shell Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		C.AtomList[i]->cart_gd += intact * TransVector;
+		C.AtomList[j]->cart_gd -= intact * TransVector;
+
+		// LonePair Core - Shell Shell
+		Qi = C.AtomList[i]->charge;
+		Qj = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+		Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart;
+
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		C.AtomList[i]->cart_gd += intact * TransVector;
+		static_cast<Shell*>(C.AtomList[j])->shel_cart_gd -= intact * TransVector;
+        }       
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    // Handling Core - Core (i.e., charge charge interaction);
+        {	
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact = C.TO_EV*((2.*M_PI)/C.volume)*Qi*Qj*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+
+		C.AtomList[i]->cart_gd += intact * TransVector;
+		C.AtomList[j]->cart_gd -= intact * TransVector;
+        }       
+}       
+
+////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
+
+////	LonePair_StrainDerivative
+
+void Manager::StrainLonePairDerivativeReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	double r_norm,r_sqr;
+	Eigen::Vector3d Rij;
+        // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
+        // Rij            = Ai.r - Aj.r - TransVector;
+	double intact;
+        
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+        }       
+        
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" ) 
+        {	
+		// LonePair Core - Shell Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+		// LonePair Core - Shell Shell
+		Qi = C.AtomList[i]->charge;
+		Qj = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+		Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+        }       
+        
+	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" ) 
+        {	
+		// Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+        }       
+        
+	if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" ) 
+        {
+		// Shell Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+		// Shell Shell - LonePair Core
+		Qi = static_cast<Shell*>(C.AtomList[i])->shel_charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+        }       
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    // Handling Core - Core (i.e., charge charge interaction);
+        {
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
+		r_norm = Rij.norm();
+		r_sqr  = r_norm*r_norm;
+
+		intact = C.TO_EV*(0.5*Qi*Qj)*((-2./C.sigma/sqrt(M_PI))*(exp(-r_sqr/C.sigma/C.sigma)/r_norm)-(erfc(r_norm/C.sigma)/r_sqr))/r_norm;
+
+		C.lattice_sd(0,0) += intact * Rij(0) * Rij(0);	C.lattice_sd(0,1) += intact * Rij(0) * Rij(1);	C.lattice_sd(0,2) += intact * Rij(0) * Rij(2);
+								C.lattice_sd(1,1) += intact * Rij(1) * Rij(1);	C.lattice_sd(1,2) += intact * Rij(1) * Rij(2);
+														C.lattice_sd(2,2) += intact * Rij(2) * Rij(2);
+        }       
+}       
+
+void Manager::StrainLonePairDerivativeSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	double r_norm,r_sqr;
+	Eigen::Vector3d Rij;
+        // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
+        // Rij            = Ai.r - Aj.r - TransVector;
+	double intact;
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    // Handling Core - Core (i.e., charge charge interaction);
+	{
+
 	}
 }
+
+void Manager::StrainLonePairDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	double Qi,Qj;
+	double g_norm = TransVector.norm();
+	double g_sqr  = g_norm*g_norm;
+	Eigen::Vector3d Rij;
+        // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
+        // Rij            = Ai.r - Aj.r;
+	double intact[4];
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "core" )    // Handling Core - Core (i.e., charge charge interaction);
+        {
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+        }       
+        
+	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "shel" ) 
+        {
+		// LonePair Core - Shell Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+
+		// LonePair Core - Shell Shell
+		Qi = C.AtomList[i]->charge;
+		Qj = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+		Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+        }       
+        
+	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" ) 
+        {
+		// Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+        }       
+        
+	if( C.AtomList[i]->type == "shel" && C.AtomList[j]->type == "lone" ) 
+        {
+		// Shell Core - LonePair Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+
+		// Shell Shell - LonePair Core
+		Qi = static_cast<Shell*>(C.AtomList[i])->shel_charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+        }       
+
+        if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )    // Handling Core - Core (i.e., charge charge interaction);
+        {
+		// LonePair Core - Core
+		Qi = C.AtomList[i]->charge;
+		Qj = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+
+		intact[0] = C.TO_EV*((2.*M_PI)/C.volume)*(Qi*Qj);
+		intact[1] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr * -sin(TransVector.adjoint()*Rij);
+		intact[2] = (-2.*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr/g_sqr*cos(TransVector.adjoint()*Rij)-0.5*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*C.sigma*C.sigma*cos(TransVector.adjoint()*Rij));
+		intact[3] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*sin(TransVector.adjoint()*Rij);
+		intact[4] = exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr*cos(TransVector.adjoint()*Rij);
+
+		// Strain derivative (1) - w.r.t. r_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*intact[1] * TransVector(0) * Rij(0);	C.lattice_sd(0,1) += intact[0]*intact[1] * TransVector(0) * Rij(1);	C.lattice_sd(0,2) += intact[0]*intact[1] * TransVector(0) * Rij(2);
+											C.lattice_sd(1,1) += intact[0]*intact[1] * TransVector(1) * Rij(1);	C.lattice_sd(1,2) += intact[0]*intact[1] * TransVector(1) * Rij(2);
+																				C.lattice_sd(2,2) += intact[0]*intact[1] * TransVector(2) * Rij(2);
+		// Strain derivative (2) - w.r.t. g_vector in the reciprocal space
+		C.lattice_sd(0,0) += intact[0]*(intact[2]*TransVector(0)-intact[3]*Rij(0))*-TransVector(0);	C.lattice_sd(0,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(0);	C.lattice_sd(0,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(0);
+														C.lattice_sd(1,1) += intact[0]*(intact[2]*TransVector(1)-intact[3]*Rij(1))*-TransVector(1);	C.lattice_sd(1,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(1);
+																										C.lattice_sd(2,2) += intact[0]*(intact[2]*TransVector(2)-intact[3]*Rij(2))*-TransVector(2);
+		// Strain derivative (3) - w.r.t cell volume in the reciprocal space
+		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
+        }       
+}
+

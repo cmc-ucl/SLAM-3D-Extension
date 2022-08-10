@@ -198,6 +198,9 @@ private:
 	Eigen::Matrix4d lp_h_matrix;			// Lone pair Hamiltonian Matrix;
 	Eigen::Matrix4d lp_h_matrix_derivative[3];	// 1,2,3 for 'x', 'y', 'z';
 	
+	Eigen::Vector3d lp_gd;
+	Eigen::Vector3d lp_gd_int;			// Gradient on the core by LonePair Density
+
 	// RadialWaveFunctions
 	int lp_spline_knot_count;
 	std::vector<double> lp_r;
@@ -327,7 +330,7 @@ public:
 
 	virtual void UpdateDerivativeInternal( const Eigen::Matrix3d& lattice_matrix )
 	{
-		Atom::UpdateDerivativeInternal( lattice_matrix );
+		Atom::UpdateDerivativeInternal( lattice_matrix );	// This only updates Atom private : Eigen::Vector3d cart_gd_int , i.e., internal derivative
 	}
 
 	virtual ~LonePair()
