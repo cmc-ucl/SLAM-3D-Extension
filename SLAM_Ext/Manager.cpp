@@ -888,39 +888,68 @@ void Manager::StrainDerivativeReci( Cell& C, const int i, const int j, const Eig
 
 ////	////	////	////	////	////	////
 
-////	LonePair Related Member Functions
+////	LonePair_Member_Functions
 
 ////	////	////	////	////	////	////
 
 void Manager::InitialiseLonePairEnergy( Cell& C )
 {
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )
+		{	
+			// Setting Temporal h_matrix zeroes
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp.setZero();
 
+			// Setting Onsite LonePair Model Parameter Lambda
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(1,1) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(2,2) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(3,3) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+		}
+	}
 } 
 
-void Manager::InitialiseLonePairDerivative( Cell& C )
+void Manager::InitialiseLonePairDerivative( Cell& C ) {}
+void Manager::InitialiseSCF() { this->man_vec.clear(); }	// Clear man_vec "Manager_Vector"
+bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
-
+	if( this->man_vec.size() < 2 )
+	{	return false;
+	}
+	else
+	{	if( fabs(this->man_vec[this->man_vec.size()-1] - this->man_vec[this->man_vec.size()-2]) > tol ) { return false; }
+		else { return true; }
+	}
 }
 
 void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
 {
+	// This Function Assumes "LonePair::Eigen::Matrix4d lp_h_matrix_tmp" is Ready For Diagonalisation
 	std::vector<double> v(4);
+	double lp_scf_sum = 0.;
 
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
-		{	static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.compute(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix,true);
+		{	
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix = static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp;
+			// Copy lp_h_matrix_tmp -> (into) lp_h_matrix ... dialgonalisation target
+			static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.compute(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix,true);
 			// Diagonalise LonePair H matrix, compute_evec='true'
+		
+
+			// Get LonePair GroundState Index
+			v[0] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(0).real();
+			v[1] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(1).real();
+			v[2] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(2).real();
+			v[3] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(3).real();
+			
+			static_cast<LonePair*>(C.AtomList[i])->lp_gs_index = std::min_element(v.begin(),v.end()) - v.begin();
+			
+			lp_scf_sum += static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(static_cast<LonePair*>(C.AtomList[i])->lp_gs_index).real();
 		}
-		
-		v[0] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(0).real();
-		v[1] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(1).real();
-		v[2] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(2).real();
-		v[3] = static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(3).real();
-		
-		static_cast<LonePair*>(C.AtomList[i])->lp_gs_index = std::min_element(v.begin(),v.end()) - v.begin();
-		// Get LonePair GroundState Index
 	}
+	this->man_vec.push_back(lp_scf_sum);	// Logging CycSum
 }
 
 const Eigen::Matrix4d& Manager::LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j )
@@ -1000,6 +1029,14 @@ void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eige
 			Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
 			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
 		}
+		
+		// LonePair - Core
+		Qi  = static_cast<LonePair*>(C.AtomList[i])->lp_charge;
+		Qj  = C.AtomList[j]->charge;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;	// Ri(LonePairCore) - Rj(Core) - TransVector;
+		// Calculate ... Matrix Elements ... add into : static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(a,b)
+ 
+
 	}
 	
 	if( C.AtomList[i]->type == "core" && C.AtomList[j]->type == "lone" )
@@ -1705,4 +1742,3 @@ void Manager::StrainLonePairDerivativeReci( Cell& C, const int i, const int j, c
 		C.lattice_sd(0,0) += -intact[0]*intact[4];	C.lattice_sd(1,1) += -intact[0]*intact[4];	C.lattice_sd(2,2) += -intact[0]*intact[4];
         }       
 }
-

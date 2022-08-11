@@ -7,7 +7,7 @@ run : test_main.o Cell.o Manager.o Atom.hpp
 Cell.o : Cell.cpp Cell.hpp Atom.hpp Manager.hpp
 	$(CC) -c Cell.cpp
 
-Manager.o : Manager.cpp Manager.hpp
+Manager.o : Manager.cpp Manager.hpp LonePairMatrix.hpp
 	$(CC) -c Manager.cpp
 
 test_main.o : test_main.cpp

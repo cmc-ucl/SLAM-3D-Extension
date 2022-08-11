@@ -9,10 +9,14 @@
 
 #include "Cell.hpp"
 #include "Atom.hpp"
-
+#include "LonePairMatrix.hpp"
 
 class Manager // Interaction Manager
 {
+
+std::vector<double> man_vec;
+LonePairMatrix_H man_lp_matrix_h;
+
 public:
 
 void InitialiseEnergy( Cell& C );
@@ -35,11 +39,13 @@ void StrainDerivativeReal( Cell& C, const int i, const int j, const Eigen::Vecto
 void StrainDerivativeSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 void StrainDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 
-
-
 //
 void InitialiseLonePairEnergy( Cell& C );
 void InitialiseLonePairDerivative( Cell& C );
+
+void InitialiseSCF();
+bool IsSCFDone( const double tol );
+
 void GetLonePairGroundState( Cell& C );
 
 /* Return Transformation Matrix - Transformation Matrix (T) rotates global symmetry to local, e.g., Hij = Tai Tbj Hab'	- inverse transform of H' (local) matrix */

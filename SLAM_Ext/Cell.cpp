@@ -483,21 +483,30 @@ void Cell::CalcCoulombDerivative()
 
 ////	////	////	////
 
+#define LONEPAIR_SCF_TOL 10E-9
+#define LONEPAIR_DERIVATIVE_TOL 10E-10
+
 void Cell::CalcLonePairCoulombEnergy()
 {
+using std::cout, std::endl;
+
 	bool is_first_scf = true;
+	bool is_scf_done = false;
 	this->scf_iter_max = 10;			// THIS NEED FURTHER MODIFICATION ... 09 Aug 2022
 
 	Manager manager;
 	Eigen::Vector3d trans;			// Translation Vector
 	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
-	manager.InitialiseLonePairEnergy(*this);
+	manager.InitialiseSCF();
 
 	for(int n=0;n<this->scf_iter_max;n++)
 	{
-		std::cout << "SCF CNT : " << n;
-		std::cout << " / is first scf : " << is_first_scf << std::endl;
+		manager.InitialiseLonePairEnergy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
+
+cout << "********************************************************\n";
+cout << "SCF CNT : " << n;
+cout << " / is first scf : " << is_first_scf << endl;
 
 		auto start = std::chrono::system_clock::now();
 
@@ -567,14 +576,42 @@ void Cell::CalcLonePairCoulombEnergy()
 		// Wtime measure
 		end = std::chrono::system_clock::now();
 
+		// Routine for Testify SCF Convergence
 		// Diagonalisations : Determine GroundStates of LonePairs
+		manager.GetLonePairGroundState(*this);
 
+/*
+// Check Routine
+for(int k=0;k<this->NumberOfAtoms;k++)
+{
+	if( this->AtomList[k]->type == "lone" )
+	{
+		const LonePair* lp = static_cast<LonePair*>(this->AtomList[k]);
+		cout << "********************************************************\n";
+		cout << "# GS index : " << lp->lp_gs_index << endl;
+		cout << endl;
+		cout << "HMatrix : \n";
+		cout << lp->lp_h_matrix << endl;
+		cout << endl;
+		cout << "Eval : \n";
+		cout << lp->lp_eigensolver.eigenvalues() << endl;
+		cout << endl;
+		cout << "Evec : \n";
+		cout << lp->lp_eigensolver.eigenvectors() << endl;
+		cout << endl;
+	}
+}
+*/
+		if( manager.IsSCFDone(LONEPAIR_SCF_TOL) ) { break; }
+
+		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )
 		{	is_first_scf = false;	// false flag indicates, only calculate LonePair density
 			this->mono_total_energy = this->mono_real_energy + this->mono_reci_energy + this->mono_reci_self_energy; // Update LonePair Core Contribution
 		}
-		// Routine for Testify SCF Convergence
 	}// end SCF
+
+// Reporting Dev Result
 
 	return;
 }

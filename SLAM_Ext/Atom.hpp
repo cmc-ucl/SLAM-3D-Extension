@@ -190,12 +190,12 @@ private:
 
 	double lp_charge;	// Lone pair charge
 	double lp_lambda;	// Lone pair s <-> p energy sepration
-	double lp_gs_energy;	// Lone pair ground state (gs) energy
 
 	int lp_gs_index;		// Ground State Index		// This variable is going to be set by manager class member function
 	Eigen::EigenSolver<Eigen::Matrix4d> lp_eigensolver;	// EigenSolver itself contains evals/evecs ... accessed by .eigenvalues() / .eigenvectors() // elements of vectors and matrices with type of std::complex<double?>
 
 	Eigen::Matrix4d lp_h_matrix;			// Lone pair Hamiltonian Matrix;
+	Eigen::Matrix4d lp_h_matrix_tmp;
 	Eigen::Matrix4d lp_h_matrix_derivative[3];	// 1,2,3 for 'x', 'y', 'z';
 	
 	Eigen::Vector3d lp_gd;
