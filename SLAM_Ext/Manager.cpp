@@ -1,7 +1,28 @@
 #include "Manager.hpp"
 
 void Manager::InitialiseEnergy( Cell& C )
-{
+{	
+
+	LonePairMatrix_H lph;
+	using std::cout, std::endl;
+	/*LonePairMatrix_H lpm;
+	lpm.test();
+	lpm.test2();
+	*/
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )
+		{
+			cout << "LonePairFound" << endl;
+
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+			
+			lph.NIntegral_test( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );
+
+		}
+	}
+	// Test End	
+
 	C.energy_real_sum_cnt = 0;
 	C.energy_reci_sum_cnt = 0;
 	C.mono_real_energy = C.mono_reci_energy = C.mono_reci_self_energy = C.mono_total_energy = 0.;
