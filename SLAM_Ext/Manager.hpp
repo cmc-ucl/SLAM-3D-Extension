@@ -49,7 +49,7 @@ bool IsSCFDone( const double tol );
 void GetLonePairGroundState( Cell& C );
 
 /* Return Transformation Matrix - Transformation Matrix (T) rotates global symmetry to local, e.g., Hij = Tai Tbj Hab'	- inverse transform of H' (local) matrix */
-const Eigen::Matrix4d& LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j );
+//const Eigen::Matrix4d& LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j );
 
 // Interaction - Lone Pair
 void CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );	// scf flag for calculating 

@@ -59,7 +59,7 @@ double lp_scf_energy_curr;				// SCF usage ... logging current scf energy of lon
 
 int scf_iter_max;
 
-Eigen::Matrix4d lp_transformation_matrix;
+//Eigen::Matrix4d lp_transformation_matrix;
 
 
 

@@ -2,27 +2,60 @@
 
 void Manager::InitialiseEnergy( Cell& C )
 {	
-
-	LonePairMatrix_H lph;
+/*
 	using std::cout, std::endl;
-	/*LonePairMatrix_H lpm;
-	lpm.test();
-	lpm.test2();
-	*/
+
+	Eigen::Vector3d v;
+	v << 1,2,-3;
+	cout << "Vector Size : " << v.norm() << endl;
+
+	//cout << this->man_lp_matrix_h.transform_matrix << endl;
+	this->man_lp_matrix_h.GetTransformationMatrix(v);
+	printf("vector : %12.6lf\t%12.6lf\t%12.6lf\n",v(0),v(1),v(2));
+	cout << this->man_lp_matrix_h.transform_matrix << endl;
+	
+	cout << "Test Transformation\n";
+
+	Eigen::Vector3d v2;
+	v2.setZero();
+	for(int i=0;i<3;i++)
+	{	
+		for(int j=0;j<3;j++)
+		{
+			v2(i) += this->man_lp_matrix_h.transform_matrix(i+1,j+1)*v(j);
+		}
+	}	// v2 is transformed 
+	printf("vector : %12.6lf\t%12.6lf\t%12.6lf\n",v2(0),v2(1),v2(2));
+
+
+	cout << "Inverse Test" << endl;
+
+	Eigen::Vector3d v3;
+	v3.setZero();
+	for(int i=0;i<3;i++)
+	{	for(int j=0;j<3;j++)
+		{
+			v3(i) += this->man_lp_matrix_h.transform_matrix(j+1,i+1)*v2(j);
+		}
+	}
+	printf("vector : %12.6lf\t%12.6lf\t%12.6lf\n",v3(0),v3(1),v3(2));
+
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
 		{
 			cout << "LonePairFound" << endl;
-
 			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
-			
-			lph.NIntegral_test( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );
+		//	this->man_lp_matrix_h.NIntegral_test_real( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );
 
 		}
 	}
 	// Test End	
 
+	exit(1);
+
+	// ForceQuit - 1
+*/
 	C.energy_real_sum_cnt = 0;
 	C.energy_reci_sum_cnt = 0;
 	C.mono_real_energy = C.mono_reci_energy = C.mono_reci_self_energy = C.mono_total_energy = 0.;
@@ -932,6 +965,7 @@ void Manager::InitialiseLonePairEnergy( Cell& C )
 
 void Manager::InitialiseLonePairDerivative( Cell& C ) {}
 void Manager::InitialiseSCF() { this->man_vec.clear(); }	// Clear man_vec "Manager_Vector"
+
 bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
 	if( this->man_vec.size() < 2 )
@@ -939,7 +973,10 @@ bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 	}
 	else
 	{	if( fabs(this->man_vec[this->man_vec.size()-1] - this->man_vec[this->man_vec.size()-2]) > tol ) { return false; }
-		else { return true; }
+		else
+		{ 	//this->man_vec.claer();
+			return true; 
+		}
 	}
 }
 
@@ -971,62 +1008,6 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 		}
 	}
 	this->man_vec.push_back(lp_scf_sum);	// Logging CycSum
-}
-
-const Eigen::Matrix4d& Manager::LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j )
-{								// reserved for : Cell.lp_transformation_matrix, AtomList[i/j]->cart, static_cast<Shell*>(AtomList[i/j])->shel_cart,
-	//Eigen::Vector3d Rij = cart_i - cart_j;
-	Eigen::Vector3d Rij = cart_j - cart_i;			// Using This Convention ... Must follow that 'cart_i' has to be a core position of LonePair of interest
-								//					      'cart_j' has to be a classic core / or the other LP
-	const double Rxy = sqrt(Rij(0)*Rij(0) + Rij(1)*Rij(1));
-	const double R   = Rij.norm();
-	double n1, n2, tmp;// dummy variables for workspace
-
-	transform_matrix.setZero();// init Return
-
-	transform_matrix(0,0) = 1.;
-
-	if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )			// if vector 'Rij' is on z-axis
-	{	transform_matrix(1,1) = 1.;
-		transform_matrix(2,2) = 1.;
-		transform_matrix(3,3) = 1.;				// set lower-right block 3x3 matrix as I
-	}
-	else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )		// if vector 'Rij' is on negative z-axis
-	{	transform_matrix(1,1) = 1.;
-		transform_matrix(2,2) = 1.;
-		transform_matrix(3,3) =-1.;				// set the matrix has xy-plane reflection
-	}
-	else
-	{	transform_matrix(3,1) = Rij(0)/R;
-		transform_matrix(3,2) = Rij(1)/R;
-		transform_matrix(3,3) = Rij(1)/R;			// set local z-axis (k') in the transformed symmetry
-
-		transform_matrix(2,1) = Rij(2)*Rij(0)/Rxy;	
-		transform_matrix(2,2) = Rij(2)*Rij(1)/Rxy;	
-		transform_matrix(2,3) = -R*sqrt(1.-Rij(2)*Rij(2)/R/R);
-	
-		n1 = 1./sqrt(transform_matrix(2,1)*transform_matrix(2,1) + transform_matrix(2,2)*transform_matrix(2,2) + transform_matrix(2,3)*transform_matrix(2,3));
-
-		for(int k=0;k<3;k++)
-		{	tmp = transform_matrix(2,k+1);
-			tmp = tmp*n1;
-			transform_matrix(2,k+1) = tmp;			// set local y-axis (j') in the transformed symmetry
-		}
-
-		transform_matrix(1,1) = n1/R * ( Rij(2)*Rij(2)*Rij(1)/Rxy + R*Rij(1)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
-		transform_matrix(1,2) = n1/R * (-Rij(2)*Rij(2)*Rij(0)/Rxy - R*Rij(0)*sqrt(1.-Rij(2)*Rij(2)/R/R) );
-		transform_matrix(1,3) = 0.;
-
-		n2 = 1./sqrt(transform_matrix(1,1)*transform_matrix(1,1) + transform_matrix(1,2)*transform_matrix(1,2) + transform_matrix(1,3)*transform_matrix(1,3));
-
-		for(int k=0;k<3;k++)
-		{	tmp = transform_matrix(1,k+1);
-			tmp = tmp/n2;
-			transform_matrix(1,k+1) = tmp;
-		}
-	}
-
-	return transform_matrix;
 }
 
 ////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
