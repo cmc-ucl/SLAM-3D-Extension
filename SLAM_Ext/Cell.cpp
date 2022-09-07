@@ -9,7 +9,7 @@
 #include <cmath>
 #include <ctime>
 
-#include "cell.hpp"
+//#include "cell.hpp"
 #include "Manager.hpp"
 
 std::string currentDateTime()
@@ -288,7 +288,6 @@ void Cell::CalcCoulombEnergy()
 	Eigen::Vector3d trans;
 	Eigen::Vector3d delta_r, delta_rij;
 	manager.InitialiseEnergy(*this);
-	//this->mono_real_energy = this->mono_reci_energy = this->mono_reci_self_energy = this->mono_total_energy = 0.;	// Initialising energies
 
 	auto start = std::chrono::system_clock::now();
 
@@ -484,94 +483,136 @@ void Cell::CalcCoulombDerivative()
 
 ////	////	////	////
 
+#define LONEPAIR_SCF_TOL 10E-9
+#define LONEPAIR_DERIVATIVE_TOL 10E-10
+
 void Cell::CalcLonePairCoulombEnergy()
 {
+using std::cout, std::endl;
+
+	bool is_first_scf = true;
+	bool is_scf_done = false;
+	this->scf_iter_max = 10;			// THIS NEED FURTHER MODIFICATION ... 09 Aug 2022
+
 	Manager manager;
 	Eigen::Vector3d trans;			// Translation Vector
 	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
-	manager.InitialiseLonePairEnergy(*this);
+	manager.InitialiseSCF();
 
+	for(int n=0;n<this->scf_iter_max;n++)
+	{
+		manager.InitialiseLonePairEnergy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
-this->scf_iter_max = 5000;			// THIS NEED FURTHER MODIFICATION ... 09 Aug 2022
+cout << "********************************************************\n";
+cout << "SCF CNT : " << n;
+cout << " / is first scf : " << is_first_scf << endl;
 
-for(int n=0;n<this->scf_iter_max;n++)
-{
-	auto start = std::chrono::system_clock::now();
+		auto start = std::chrono::system_clock::now();
 
-	for(int i=0;i<this->NumberOfAtoms;i++)
-	{	for(int j=0;j<this->NumberOfAtoms;j++)
-		{	for(int h = -this->h_max ; h <= this->h_max ; h++)
-			{	for(int k = -this->k_max ; k <= this->k_max ; k++)
-				{	for(int l = -this->l_max ; l <= this->l_max ; l++)
-					{
-						trans   = h*this->real_vector[0] + k*this->real_vector[1] + l*this->real_vector[2];	// T = h*a + k*b +l*c
-						//// START REAL SPACE
-						if( (trans.norm()) < this->rcut )
-						{	
-							if( h == 0 && k == 0 && l == 0 )
-							{	
-							    if( i != j )
-							    {
-								manager.CoulombLonePairReal(*this,i,j,trans);
-							    }	// h=k=l=0 (central image) - excluding self interaction
-							}
-							else
-							{
-								manager.CoulombLonePairReal(*this,i,j,trans);
-							}
-
-							this->energy_real_sum_cnt++;
-						}
-						//// END REAL SPACE
-					}// end l
-				}// end k
-			}//end h
-		}// end j
-	}// end i
-
-	auto end = std::chrono::system_clock::now();
-
-	//
-
-	start = std::chrono::system_clock::now();
-  
-	for(int i=0;i<this->NumberOfAtoms;i++)
-	{	for(int j=0;j<this->NumberOfAtoms;j++)
-		{	for(int h = -this->ih_max ; h <= this->ih_max ; h++)
-			{	for(int k = -this->ik_max ; k <= this->ik_max ; k++)
-				{	for(int l = -this->il_max ; l <= this->il_max ; l++)
-					{
-						trans   = h*this->reci_vector[0] + k*this->reci_vector[1] + l*this->reci_vector[2];	// G = h*2pi*u + k*2pi*v + l*2pi*w
-
-						if( (trans.norm()) < this->gcut )
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	for(int j=0;j<this->NumberOfAtoms;j++)
+			{	for(int h = -this->h_max ; h <= this->h_max ; h++)
+				{	for(int k = -this->k_max ; k <= this->k_max ; k++)
+					{	for(int l = -this->l_max ; l <= this->l_max ; l++)
 						{
-							if( h == 0 && k == 0 && l == 0 )
-							{
-							    if( i == j )	// Self interaction
-							    {	
-								manager.CoulombLonePairSelf(*this,i,j,trans);
-							    }
-							}
-							else
+							trans   = h*this->real_vector[0] + k*this->real_vector[1] + l*this->real_vector[2];	// T = h*a + k*b +l*c
+							//// START REAL SPACE
+							if( (trans.norm()) < this->rcut )
 							{	
-								manager.CoulombLonePairReci(*this,i,j,trans);
+								if( h == 0 && k == 0 && l == 0 )
+								{	
+								    if( i != j )
+								    {
+									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);	// Sep 7 2022 Wed, for the moment calculating 'LonePair Core' involved interactions
+																	// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
+								    }	// h=k=l=0 (central image) - excluding self interaction
+								}
+								else
+								{
+									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);
+								}
 							}
+							//// END REAL SPACE
+						}// end l
+					}// end k
+				}//end h
+			}// end j
+		}// end i
 
-							this->energy_reci_sum_cnt++;
-						}
-					}// end l
-				}// end k
-			}//end h
-		}// end j
-	}// end i
+		auto end = std::chrono::system_clock::now();
 
-	// Wtime measure
-	end = std::chrono::system_clock::now();
+		//
 
-	// Diagonalisations : Determine GroundStates of LonePairs
+		start = std::chrono::system_clock::now();
+	  
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	for(int j=0;j<this->NumberOfAtoms;j++)
+			{	for(int h = -this->ih_max ; h <= this->ih_max ; h++)
+				{	for(int k = -this->ik_max ; k <= this->ik_max ; k++)
+					{	for(int l = -this->il_max ; l <= this->il_max ; l++)
+						{
+							trans   = h*this->reci_vector[0] + k*this->reci_vector[1] + l*this->reci_vector[2];	// G = h*2pi*u + k*2pi*v + l*2pi*w
 
-}// end SCF
+							if( (trans.norm()) < this->gcut )
+							{
+								if( h == 0 && k == 0 && l == 0 )
+								{
+								    if( i == j )	// Self interaction
+								    {	
+									manager.CoulombLonePairSelf(*this,i,j,trans,is_first_scf);
+								    }
+								}
+								else
+								{	
+									manager.CoulombLonePairReci(*this,i,j,trans,is_first_scf);
+								}
+							}
+						}// end l
+					}// end k
+				}//end h
+			}// end j
+		}// end i
+
+		// Wtime measure
+		end = std::chrono::system_clock::now();
+
+		// Routine for Testify SCF Convergence
+		// Diagonalisations : Determine GroundStates of LonePairs
+		manager.GetLonePairGroundState(*this);
+
+/*
+// Check Routine
+for(int k=0;k<this->NumberOfAtoms;k++)
+{
+	if( this->AtomList[k]->type == "lone" )
+	{
+		const LonePair* lp = static_cast<LonePair*>(this->AtomList[k]);
+		cout << "********************************************************\n";
+		cout << "# GS index : " << lp->lp_gs_index << endl;
+		cout << endl;
+		cout << "HMatrix : \n";
+		cout << lp->lp_h_matrix << endl;
+		cout << endl;
+		cout << "Eval : \n";
+		cout << lp->lp_eigensolver.eigenvalues() << endl;
+		cout << endl;
+		cout << "Evec : \n";
+		cout << lp->lp_eigensolver.eigenvectors() << endl;
+		cout << endl;
+	}
+}
+*/
+		if( manager.IsSCFDone(LONEPAIR_SCF_TOL) ) { break; }
+
+		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
+		if( is_first_scf == true )
+		{	is_first_scf = false;	// false flag indicates, only calculate LonePair density
+			this->mono_total_energy = this->mono_real_energy + this->mono_reci_energy + this->mono_reci_self_energy; // Update LonePair Core Contribution
+		}
+	}// end SCF
+
+// Reporting Dev Result
 
 	return;
 }
@@ -588,7 +629,7 @@ void Cell::CalcLonePairCoulombDerivative()
 	Manager manager;			// Managing Interactions + Calculations
 	Eigen::Vector3d trans;			// Lattice Translation Vector
 	Eigen::Vector3d delta_rij, delta_r;	// Interatomic Diatance
-	manager.InitialiseDerivative(*this);
+	manager.InitialiseLonePairDerivative(*this);
 
 	auto start = std::chrono::system_clock::now();
 
@@ -608,20 +649,18 @@ void Cell::CalcLonePairCoulombDerivative()
 							    if( i != j )
 							    {	
 								// Raw Geometric Derivatives
-								manager.CoulombDerivativeReal(*this,i,j,trans);
+								manager.CoulombLonePairDerivativeReal(*this,i,j,trans);
 								// Strain Derivatives Real Space Contribution
-								manager.StrainDerivativeReal(*this,i,j,trans);
+								manager.StrainLonePairDerivativeReal(*this,i,j,trans);
 							    }	// h=k=l=0 (central image) - excluding self interaction
 							}
 							else
 							{
 								// Raw Geometric Derivatives
-								manager.CoulombDerivativeReal(*this,i,j,trans);
+								manager.CoulombLonePairDerivativeReal(*this,i,j,trans);
 								// Strain Derivatives Real Space Contribution
-								manager.StrainDerivativeReal(*this,i,j,trans);
+								manager.StrainLonePairDerivativeReal(*this,i,j,trans);
 							}
-
-							this->derivative_real_sum_cnt++;
 						}
 						//// END REAL SPACE
 					}// end l
@@ -630,7 +669,8 @@ void Cell::CalcLonePairCoulombDerivative()
 		}// end j
 	}// end i
 	auto end = std::chrono::system_clock::now();
-	this->derivative_real_wtime = (end - start);
+
+
 
 	start = std::chrono::system_clock::now();
 
@@ -649,19 +689,17 @@ void Cell::CalcLonePairCoulombDerivative()
 							{
 								if( i == j )	// Self interaction
 								{
-									manager.CoulombDerivativeSelf(*this,i,j,trans);	// This calculation is not necessary for a system only with point charges
+									manager.CoulombLonePairDerivativeSelf(*this,i,j,trans);	// This calculation is not necessary for a system only with point charges
 															// In the presence of ShellModel ions, there are non-zero derivatives by shell-core separation
-									manager.StrainDerivativeSelf(*this,i,j,trans);
+									manager.StrainLonePairDerivativeSelf(*this,i,j,trans);
 								}
 							}
 							else
 							{	// Raw Geometric Derivative
-								manager.CoulombDerivativeReci(*this,i,j,trans);
+								manager.CoulombLonePairDerivativeReci(*this,i,j,trans);
 								// Strain Derivatives Reciprocal Space Contribution	// w.r.t 'r', 'V', 'G'
-								manager.StrainDerivativeReci(*this,i,j,trans);
+								manager.StrainLonePairDerivativeReci(*this,i,j,trans);
 							}
-
-							this->derivative_reci_sum_cnt++;
 						}
 					}// end l
 				}// end k
@@ -670,7 +708,6 @@ void Cell::CalcLonePairCoulombDerivative()
 	}// end i
 
 	end = std::chrono::system_clock::now();
-	this->derivative_reci_wtime = (end - start);
 
 	// Convert raw geometric derivative -> internal geometric derivative
 	for(int i=0;i<this->NumberOfAtoms;i++)

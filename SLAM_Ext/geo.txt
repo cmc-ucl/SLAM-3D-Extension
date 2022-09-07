@@ -10,13 +10,15 @@ atom 	0.05 	0.00 	0.000 	Mg	shel	0.05	0.	-0.15
 atom 	0.49 	0.52 	0.025 	Mg	shel	0.5	0.5	0.025
 atom 	0.50 	0.00 	0.500 	Mg	shel
 atom 	0.00 	0.52 	0.500 	Pb	lone
-#atom 	0.00 	0.52 	0.500 	Mg	shel
+#atom 	0.00 	0.52 	0.500 	Ba	core
 atom 	0.50 	0.50 	0.500 	O 	shel
 atom 	0.50 	0.00 	-0.04 	O 	shel   0.5 0.00 -0.03
 atom 	0.10 	0.50 	0.320 	O 	shel   0.1 0.48 0.30
 atom 	0.00 	0.00 	0.500 	O 	shel   # Test displacement at 'x_frac'
 
 
-species Pb	lone	3.44	-1.44	14.5
+#species Pb	lone	3.44	-1.44	14.5
+species Pb	lone	2.00	0.00	14.5
+species Ba	core	2.00
 species	Mg	shel	1.8	+0.2	100	999.
 species	O	shel 	1.0 	-3.0 	100 	999.

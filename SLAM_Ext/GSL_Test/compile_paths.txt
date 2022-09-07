@@ -1,0 +1,6 @@
+g++20 -c foo.cpp -I /usr/local/include                 		// gsl header path
+g++20 -c t1.cpp 
+g++20 -o run foo.o t1.o -L /usr/local/lib -lgsl -lm		// library link path
+
+
+-I /usr/local/include -L /usr/local/lib/ -lgsl -lgslcbals -lm
