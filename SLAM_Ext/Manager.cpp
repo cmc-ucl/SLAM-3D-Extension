@@ -1,8 +1,13 @@
 #include "Manager.hpp"
 
+//#define MANAGER_DEBUG
+
 void Manager::InitialiseEnergy( Cell& C )
-{	
-/*
+{
+	
+#ifdef MANAGER_DEBUG
+
+	// Test Section Sep 07 2022
 	using std::cout, std::endl;
 
 	Eigen::Vector3d v;
@@ -12,34 +17,44 @@ void Manager::InitialiseEnergy( Cell& C )
 	//cout << this->man_lp_matrix_h.transform_matrix << endl;
 	this->man_lp_matrix_h.GetTransformationMatrix(v);
 	printf("vector : %12.6lf\t%12.6lf\t%12.6lf\n",v(0),v(1),v(2));
+
+	cout << endl;
+	cout << "Transform matrix 4x4 version" << endl;
 	cout << this->man_lp_matrix_h.transform_matrix << endl;
+	cout << endl;
+	cout << "Transform matrix 3x3 version" << endl;
+	cout << this->man_lp_matrix_h.transform_matrix_shorthand << endl;
 	
 	cout << "Test Transformation\n";
 
 	Eigen::Vector3d v2;
+	/*
 	v2.setZero();
 	for(int i=0;i<3;i++)
-	{	
-		for(int j=0;j<3;j++)
-		{
-			v2(i) += this->man_lp_matrix_h.transform_matrix(i+1,j+1)*v(j);
+	{	for(int j=0;j<3;j++)
+		{	v2(i) += this->man_lp_matrix_h.transform_matrix(i+1,j+1)*v(j);
 		}
 	}	// v2 is transformed 
+	*/
+	v2 = this->man_lp_matrix_h.transform_matrix_shorthand * v;
 	printf("vector : %12.6lf\t%12.6lf\t%12.6lf\n",v2(0),v2(1),v2(2));
 
-
+	cout << endl;
 	cout << "Inverse Test" << endl;
-
 	Eigen::Vector3d v3;
 	v3.setZero();
+	/*
 	for(int i=0;i<3;i++)
 	{	for(int j=0;j<3;j++)
 		{
 			v3(i) += this->man_lp_matrix_h.transform_matrix(j+1,i+1)*v2(j);
 		}
 	}
+	*/
+	v3 = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * v2;
 	printf("vector : %12.6lf\t%12.6lf\t%12.6lf\n",v3(0),v3(1),v3(2));
 
+	cout << "reflected" << endl;
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
@@ -50,12 +65,11 @@ void Manager::InitialiseEnergy( Cell& C )
 
 		}
 	}
-	// Test End	
-
 	exit(1);
-
 	// ForceQuit - 1
-*/
+	// Test Section End
+#endif
+
 	C.energy_real_sum_cnt = 0;
 	C.energy_reci_sum_cnt = 0;
 	C.mono_real_energy = C.mono_reci_energy = C.mono_reci_self_energy = C.mono_total_energy = 0.;
@@ -968,11 +982,11 @@ void Manager::InitialiseSCF() { this->man_vec.clear(); }	// Clear man_vec "Manag
 
 bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
-	if( this->man_vec.size() < 2 )
+	if( this->man_vec.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
 	{	return false;
 	}
-	else
-	{	if( fabs(this->man_vec[this->man_vec.size()-1] - this->man_vec[this->man_vec.size()-2]) > tol ) { return false; }
+	else	// IF IS THE CYCLES AFTHER THE FIRST
+	{	if( fabs(this->man_vec[this->man_vec.size()-1] - this->man_vec[this->man_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
 		else
 		{ 	//this->man_vec.claer();
 			return true; 
@@ -982,9 +996,10 @@ bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 
 void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
 {
-	// This Function Assumes "LonePair::Eigen::Matrix4d lp_h_matrix_tmp" is Ready For Diagonalisation
-	std::vector<double> v(4);
-	double lp_scf_sum = 0.;
+	// This Function Assumes "LonePair::Eigen::Matrix4d lp_h_matrix_tmp" is Ready to be diagonalised
+
+	std::vector<double> v(4);	// SPACE FOR HOLDING EIGEN VALUES
+	double lp_scf_sum = 0.;		// TEMOPORALILY HOLDING GROUND STATE ENERGY SUM
 
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{

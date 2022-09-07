@@ -8,7 +8,7 @@
 #include <Eigen/Dense>
 
 #include "Cell.hpp"
-#include "Atom.hpp"
+//#include "Atom.hpp"		// Exiplicit declaration
 #include "LonePairMatrix.hpp"
 
 class Manager // Interaction Manager

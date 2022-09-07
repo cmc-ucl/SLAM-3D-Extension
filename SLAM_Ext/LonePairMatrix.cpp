@@ -82,6 +82,10 @@ const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( const Eigen::Vec
                 }
         }
 
+	// Saving the LowerBlock Diagonal 3x3 Matrix
+	for(int i=0;i<3;i++)
+	{	for(int j=0;j<3;j++) { this->transform_matrix_shorthand(i,j) = this->transform_matrix(i+1,j+1); }}
+	// Return
         return this->transform_matrix;
 }
 

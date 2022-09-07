@@ -9,7 +9,7 @@
 #include <cmath>
 #include <ctime>
 
-#include "cell.hpp"
+//#include "cell.hpp"
 #include "Manager.hpp"
 
 std::string currentDateTime()
@@ -524,7 +524,8 @@ cout << " / is first scf : " << is_first_scf << endl;
 								{	
 								    if( i != j )
 								    {
-									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);
+									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);	// Sep 7 2022 Wed, for the moment calculating 'LonePair Core' involved interactions
+																	// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
 								    }	// h=k=l=0 (central image) - excluding self interaction
 								}
 								else
