@@ -1,6 +1,13 @@
 #include <cmath>
 #include <gsl/gsl_sf_expint.h>
 
+// Real Space Energy Integrals - Uses Numerical Trapzoidal Method
+/*
+
+
+
+*/
+
 double EnergyAngularIntegral_real_ss( double sig, double r, double d )
 {
 	return ((2*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) + 
@@ -18,7 +25,7 @@ double EnergyAngularIntegral_real_sz( double sig, double r, double d )
 	pow(fabs(d - r),3)*erfc(fabs(d - r)/sig))/(4.*sqrt(3)*pow(d,2)*pow(r,2));
 }
 
-double EnergyAngularIntegral_real_xxyy( double sig, double r, double d )
+double EnergyAngularIntegral_real_xx( double sig, double r, double d )
 {
 	return (-3*((-2*sig*(pow(d,4)*(pow(M_E,pow(d - r,2)/pow(sig,2)) - 
 	pow(M_E,pow(d + r,2)/pow(sig,2))) + 
@@ -73,6 +80,125 @@ double EnergyAngularIntegral_real_zz( double sig, double r, double d )
 	7*pow(d,2)*pow(r,2) + 2*d*pow(r,3) + 2*pow(r,4))*fabs(d - r)*
 	erfc(fabs(d - r)/sig))/15.))/(16.*pow(d,3)*pow(r,3));
 }
+
+////	////	////	////	////	////
+
+// Energy Reciprocal space integrals
+
+////	////	////	////	////	////
+
+double EnergyAngularIntegral_reci_ss( const double r, const double g )
+{
+	return sin(g*r)/g/r;
+}
+
+double EnergyAngularIntegral_reci_xx( const double r, const double g )
+{
+	return 3.*(-g*r*cos(g*r)+sin(g*r))/g/g/g/r/r/r;
+}
+
+double EnergyAngularIntegral_reci_zz( const double r, const double g )
+{
+	return 3.*(2.*g*r*cos(g*r)+(-2.+g*g*r*r)*sin(g*r))/g/g/g/r/r/r;
+}
+
+
+////	////	////	////	////	////
+
+// Energy Angular Integral 1st Derivatives
+
+////	////	////	////	////	////
+
+// derivative x - sx or y - sy ... usage : point charge derivative / lplp energy interaction
+
+double EnergyAngularIntegral_real_derivative_x_sx( double sig, double r, double d )
+{
+	return ((sig*(2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) + 
+	2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 
+	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) + 
+	2*(pow(d,3) + pow(r,3))*erfc((d + r)/sig) - 
+	(2*pow(d - r,2)*(pow(d,2) + d*r + pow(r,2))*erfc(fabs(d - r)/sig))/fabs(d - r))/
+	(4.*sqrt(3)*pow(d,3)*pow(r,2));
+}
+
+// derivative x - xz or y - yz ... usage : point charge derivative / lplp energy interaction
+
+double EnergyAngularIntegral_real_derivative_x_xz( double sig, double r, double d )
+{
+	return (3*((sig*(4*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) + 
+	4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 
+	2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2)) + 
+	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*
+	(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) + 
+	4*(pow(d,5) + pow(r,5))*erfc((d + r)/sig) - 
+	(4*pow(d - r,2)*(pow(d,4) + pow(d,3)*r + pow(d,2)*pow(r,2) + d*pow(r,3) + 
+	pow(r,4))*erfc(fabs(d - r)/sig))/fabs(d - r)))/(40.*pow(d,4)*pow(r,3));
+}
+
+// derivative z - ss           ... usage : point charge derivative / lplp energy interaction
+
+double EnergyAngularIntegral_real_derivative_z_ss( double sig, double r, double d )
+{
+	return -0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/pow(M_E,pow(d + r,2)/pow(sig,2)) + 
+	sqrt(M_PI)*r*erfc((d + r)/sig) + (sqrt(M_PI)*(d - r)*r*erfc(fabs(d - r)/sig))/fabs(d - r))/
+	(pow(d,2)*sqrt(M_PI)*r);
+}
+
+// derivative z - sz           ... usage : point charge derivative / lplp energy interaction
+
+double EnergyAngularIntegral_real_derivative_z_sz( double sig, double r, double d )
+{
+	return ((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 
+	2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - 
+	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + 
+	sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) - 
+	(sqrt(M_PI)*(pow(d,4) - pow(d,3)*r + 2*d*pow(r,3) - 2*pow(r,4))*erfc(fabs(d - r)/sig))/
+	fabs(d - r))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2));
+}
+
+// derivative z - xx = yy      ... usage : point charge derivative / lplp energy interaction
+
+double EnergyAngularIntegral_real_derivative_z_xx( double sig, double r, double d )
+{
+	return ((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 
+	8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 
+	6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) - 
+	4*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2)) + 
+	3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*
+	(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 
+	4*sqrt(M_PI)*pow(d + r,2)*(2*pow(d,3) - 4*pow(d,2)*r + 6*d*pow(r,2) - 3*pow(r,3))*
+	erfc((d + r)/sig) + (4*sqrt(M_PI)*pow(d - r,3)*
+	(2*pow(d,3) + 4*pow(d,2)*r + 6*d*pow(r,2) + 3*pow(r,3))*erfc(fabs(d - r)/sig))/
+	fabs(d - r))/(40.*pow(d,4)*sqrt(M_PI)*pow(r,3));
+}
+
+// derivative z - zz           ... usage : point charge derivative / lplp energy interaction
+
+double EnergyAngularIntegral_real_derivative_z_zz( double sig, double r, double d )
+{
+	return -0.05*((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 
+	8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 
+	6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(11*pow(r,2) + 2*pow(sig,2)) + 
+	3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*
+	(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 
+	2*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) - 6*pow(r,5))*erfc((d + r)/sig) + 
+	(2*sqrt(M_PI)*(4*pow(d,6) - 4*pow(d,5)*r + 5*pow(d,3)*pow(r,3) - 
+	5*pow(d,2)*pow(r,4) + 6*d*pow(r,5) - 6*pow(r,6))*erfc(fabs(d - r)/sig))/
+	fabs(d - r))/(pow(d,4)*sqrt(M_PI)*pow(r,3));
+}
+
+
+
+// LP Energy Calculation recipes ... Sep 09 (Thur) 2022
+
+/*
 
 double EnergyIntegral_reci_ss( double k1, double k2, double g, double as, double bs, double cs, double ds )
 {
@@ -161,3 +287,6 @@ double EnergyIntegral_reci_zz( double k1, double k2, double g, double ap, double
 	7*pow(ap,2)*pow(k2,4)*sin(g*k2) + 2*(pow(cp,2) + 2*bp*dp)*gsl_sf_Si(g*k1) - 
 	2*(pow(cp,2) + 2*bp*dp)*gsl_sf_Si(g*k2)))/pow(g,3);
 }
+*/
+// LP Energy Calculation recipes ... Sep 07 (Tue) 2022
+

@@ -9,18 +9,25 @@
 #define FFHA_TO_FFEV_UNIT (EV_UNIT/TO_BOHR_RADII/TO_BOHR_RADII/TO_BOHR_RADII)		// mul Ha/Bohr^2-> eV/Angstrom^2
 
 #include <Eigen/Core>
+//#include "Atom.hpp"
 #include "Integral_lib.hpp"
+
+#define GRID_W 2048
 
 class LonePairMatrix
 {
 public:
 
-	Eigen::Matrix4d transform_matrix;
-	Eigen::Matrix3d transform_matrix_shorthand;
+	//N Integrate Variables
+
+	double grid_weight;
+
+	Eigen::Matrix4d transform_matrix;		// Raw 4x4 transformation matrix
+	Eigen::Matrix3d transform_matrix_shorthand;	// Lower 3x3 block diag-matrix of the 4x4
 
 	const int b_serach( const double dist, const std::vector<double>& integral_knot );
 
-	const Eigen::Matrix4d& GetTransformationMatrix( const Eigen::Vector3d& Rij );
+	const Eigen::Matrix4d& GetTransformationMatrix( const Eigen::Vector3d& Rij );	// Sets 'transform_matrix*'
 };
 
 class LonePairMatrix_H : public LonePairMatrix	// 'public' specification is required ... take the public features as public
@@ -38,8 +45,16 @@ public:
 	const double NIntegral_test_real( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] );
 ///	///	///	///	///	///	///	///
 
+	// Real Space Integral - LP...PointCharge(pc) Interaction
+	double real_ss_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_sz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
 
+	// Test
+	double real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
 
+	// Real Space Integral - LP...LP Interaction
 
 };
 

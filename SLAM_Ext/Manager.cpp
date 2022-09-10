@@ -1,12 +1,12 @@
 #include "Manager.hpp"
 
-//#define MANAGER_DEBUG
+//#define MANAGER_DEBUG_lp_add_2
+#define MD2
 
 void Manager::InitialiseEnergy( Cell& C )
 {
 	
-#ifdef MANAGER_DEBUG
-
+#ifdef MANAGER_DEBUG_lp_add_2
 	// Test Section Sep 07 2022
 	using std::cout, std::endl;
 
@@ -61,7 +61,7 @@ void Manager::InitialiseEnergy( Cell& C )
 		{
 			cout << "LonePairFound" << endl;
 			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
-		//	this->man_lp_matrix_h.NIntegral_test_real( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );
+			this->man_lp_matrix_h.NIntegral_test_real( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );
 
 		}
 	}
@@ -70,6 +70,53 @@ void Manager::InitialiseEnergy( Cell& C )
 	// Test Section End
 #endif
 
+#ifdef MD2
+	double sig  = 2.49475;
+	//double dist = 1.305;
+	double dist = 1.355;
+	double res_ss, res_sz, res_xx, res_zz;
+	using std::cout, std::endl;
+
+	LonePair* lp;
+
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )
+		{
+			cout << "LonePairFound" << endl;
+			lp = static_cast<LonePair*>(C.AtomList[i]);
+			res_ss = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+			res_sz = this->man_lp_matrix_h.real_sz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+			res_xx = this->man_lp_matrix_h.real_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+			res_zz = this->man_lp_matrix_h.real_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		}
+	}
+	printf("%10.6lf%20.10lf\t%20.10lf\t%20.10lf\t%20.10lf\n",dist,res_ss,res_sz,res_xx,res_zz);
+
+	
+	double delta[6] = {0.1,0.05,0.025,0.0125,0.005,0.00025};
+	double ssf, ssb;
+
+	for(int i=0;i<6;i++)
+	{
+		dist = dist + delta[i];
+		ssf = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		dist = dist - delta[i];
+
+		dist = dist - delta[i];
+		ssb = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		dist = dist + delta[i];
+
+		double fdm = (ssf-ssb)/2./delta[i];
+		printf("Fdm SS - Z : %20.12lf\n",fdm);
+
+		double anal = this->man_lp_matrix_h.real_ss_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		printf("Ana SS - Z : %20.12lf\n",anal);
+		printf("dr  : %20.12lf\n",delta[i]);
+		printf("Err : %20.12lf % \n",(anal-fdm)/anal*100.);
+	}
+	exit(1);
+#endif
 	C.energy_real_sum_cnt = 0;
 	C.energy_reci_sum_cnt = 0;
 	C.mono_real_energy = C.mono_reci_energy = C.mono_reci_self_energy = C.mono_total_energy = 0.;
