@@ -202,6 +202,58 @@ double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, c
 	return res;
 }
 
+double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
+{
+	double res = 0.;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
+	// Distance to Bohr
+	
+	for(int i=0;i<integral_knot.size()-1;i++)
+	{
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
+		
+		for(int k=0;k<mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_sx(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_sx(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
+		}
+	}
+	// eV Unit
+	return res;
+}
+
+double LonePairMatrix_H::real_xz_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
+{
+	double res = 0.;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
+	// Distance to Bohr
+	
+	for(int i=0;i<integral_knot.size()-1;i++)
+	{
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
+		
+		for(int k=0;k<mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_xz(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_xz(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
+		}
+	}
+	// eV Unit
+	return res;
+}
+
 double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
@@ -229,8 +281,85 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 }
 
 
+double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
+{
+	double res = 0.;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
+	// Distance to Bohr
+	
+	for(int i=0;i<integral_knot.size()-1;i++)
+	{
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
+		
+		for(int k=0;k<mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
+		}
+	}
+	// eV Unit
+	return res;
+}
 
 
+double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
+{
+	double res = 0.;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
+	// Distance to Bohr
+	
+	for(int i=0;i<integral_knot.size()-1;i++)
+	{
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
+		
+		for(int k=0;k<mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_xx(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_xx(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
+		}
+	}
+	// eV Unit
+	return res;
+}
+
+
+double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
+{
+	double res = 0.;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
+	// Distance to Bohr
+	
+	for(int i=0;i<integral_knot.size()-1;i++)
+	{
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
+		
+		for(int k=0;k<mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
+		}
+	}
+	// eV Unit
+	return res;
+}
 
 
 

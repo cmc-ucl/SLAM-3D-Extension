@@ -28,6 +28,8 @@ public:
 	const int b_serach( const double dist, const std::vector<double>& integral_knot );
 
 	const Eigen::Matrix4d& GetTransformationMatrix( const Eigen::Vector3d& Rij );	// Sets 'transform_matrix*'
+	// Inverse Transformation - H_global = P_transpose * H_local * P
+	// Direct  Transformation - H_local  = P * H_local * P_transpose
 };
 
 class LonePairMatrix_H : public LonePairMatrix	// 'public' specification is required ... take the public features as public
@@ -51,8 +53,13 @@ public:
 	double real_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
 	double real_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
 
-	// Test
+	// Test ... the grad is w.r.t pc (by its displacement of the above h_pc) Not!!! for the LP-Core ... therefore to get grad LP-Core, its sign must be inversed.
+	double real_sx_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_xz_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
 	double real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_sz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_xx_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
+	double real_zz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d );
 
 	// Real Space Integral - LP...LP Interaction
 
