@@ -94,6 +94,7 @@ void GetLonePairGroundState( Cell& C );
 // Setting LP H matrices
 const Eigen::Matrix4d& set_h_matrix_real_pc( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 void set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
+void set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 
 //
 

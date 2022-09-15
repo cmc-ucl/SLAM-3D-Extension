@@ -99,6 +99,19 @@ void Manager::set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector
 		}
 	}
 }
+
+void Manager::set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
+{
+	this->man_lp_matrix_h.GetTransformationMatrix(R);	// get Transformation matrix ... saved : Eigen::Matrix4d this->man_lp_matrix_h.transform_matrix;
+	Eigen::Matrix4d h_tmp_d2[9];
+	Eigen::Matrix4d h_tmp_d2_ws[9];
+
+	for(int i=0;i<9;i<++) { h_tmp_d2[i].setZero(); h_tmp_d2_ws[i].setZero(); }	// Initialise
+
+	// xx h_matrix loc
+	h_tmp_d2[0]
+
+}
 /*
 void Manager::set_h_matrix_real_pc_derivative_y( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
 {
@@ -246,6 +259,10 @@ void Manager::InitialiseEnergy( Cell& C )
 		cout << endl;
 	}
 	// FDM TEST 
+
+
+	cout << "\n\n\n";
+	cout << "PC 2nd Derivative Test" << endl;
 
 	exit(1);
 #endif
