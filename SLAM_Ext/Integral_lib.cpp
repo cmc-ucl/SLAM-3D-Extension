@@ -1,10 +1,14 @@
 #include <cmath>
 #include <gsl/gsl_sf_expint.h>
 
+//#define DB
+
+#ifdef DB
+	#include <cstdio>
+#endif
+
 // Real Space Energy Integrals - Uses Numerical Trapzoidal Method
 /*
-
-
 
 */
 
@@ -178,162 +182,135 @@ double EnergyAngularIntegral_real_derivative_z_zz( double sig, double r, double 
 
 ////	////	////	////	////	////
 
-double EnergyAngularIntegral_real_derivative2_xx_ss( double sig, double r, double d )
+
+//// Auxiliary Correction ... integrating at the point of divergence (discontinuous point)
+
+double real_derivative2_aux_grad_z_ss( double sig, double r, double d )
 {
-return ((-8*M_PI*(d*r + pow(r,2) - pow(d,2)*(-1 + sig))*pow(sig,3)*erfc((d + r)/sig))/(d + r) - 
-(M_PI*pow(pow(d,2) - pow(r,2),2)*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + 
-(2*M_PI*(3*pow(r,2) + pow(d,2)*(3 - 4*sig))*pow(sig,3)*erfc(fabs(d - r)/sig))/fabs(d - r) + 
-3*M_PI*pow(sig,3)*fabs(d - r)*erfc(fabs(d - r)/sig) + sqrt(M_PI)*
-(-((pow(sig,2)*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 
-(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(r,2)*(-1 + sig) + pow(sig,2)*(3 + 5*sig))))/pow(M_E,pow(d + r,2)/pow(sig,2))) - 
-(-1 + sig)*(pow(d,4) + pow(r,4) + 6*pow(r,2)*pow(sig,2) - 2*pow(d,2)*(pow(r,2) - 3*pow(sig,2)))*
-std::expint(-(pow(d - r,2)/pow(sig,2))) + (-1 + sig)*
-(pow(d,4) + pow(r,4) + 6*pow(r,2)*pow(sig,2) - 2*pow(d,2)*(pow(r,2) - 3*pow(sig,2)))*
-std::expint(-(pow(d + r,2)/pow(sig,2)))))/(16.*pow(d,3)*M_PI*r*pow(sig,4));
+	return -((-0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) + r*erfc((d + r)/sig) - r*erfc(fabs(d - r)/sig))/(pow(d,2)*r))
+	- (-0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) + r*erfc((d + r)/sig) + r*erfc(fabs(d - r)/sig))/(pow(d,2)*r)));
 }
-double EnergyAngularIntegral_real_derivative2_xx_sz( double sig, double r, double d )
+
+double real_derivative2_aux_grad_z_sz( double sig, double r, double d )
 {
-return (sqrt(3)*((16*(-(d*pow(r,3)) - pow(r,4) + pow(d,4)*(-1 + sig) + pow(d,3)*r*(-1 + sig) + pow(d,2)*pow(r,2)*(-1 + sig))*pow(sig,3)*
-erfc((d + r)/sig))/(d + r) - (pow(pow(d,2) - pow(r,2),2)*(pow(d,2) + pow(r,2))*pow(sig,3)*erfc(fabs(d - r)/sig))/
-pow(fabs(d - r),3) - (pow(sig,3)*(-9*pow(r,4) + 2*pow(d,2)*pow(r,2)*(-3 + 4*sig) + pow(d,4)*(-9 + 8*sig))*
-erfc(fabs(d - r)/sig))/fabs(d - r) + (9*pow(r,2) + pow(d,2)*(9 - 8*sig))*pow(sig,3)*fabs(d - r)*erfc(fabs(d - r)/sig) - 
-pow(sig,3)*pow(fabs(d - r),3)*erfc(fabs(d - r)/sig) + 
-((pow(sig,2)*(-(pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig)) - 
-2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) - 
-2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig)*(pow(r,2) - 4*pow(sig,2)) - 
-2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(pow(r,2)*(-1 + sig) + pow(sig,2)*(1 + 7*sig)) - 
-(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(r,4)*(-1 + sig) + 8*pow(r,2)*pow(sig,2)*(1 + sig) - pow(sig,4)*(1 + 7*sig))))/
-pow(M_E,pow(d + r,2)/pow(sig,2)) - (-1 + sig)*
-(pow(d,6) + pow(r,6) + 9*pow(r,4)*pow(sig,2) - pow(d,4)*(pow(r,2) - 9*pow(sig,2)) - 
-pow(d,2)*(pow(r,4) - 6*pow(r,2)*pow(sig,2)))*std::expint(-(pow(d - r,2)/pow(sig,2))) + 
-(-1 + sig)*(pow(d,6) + pow(r,6) + 9*pow(r,4)*pow(sig,2) - pow(d,4)*(pow(r,2) - 9*pow(sig,2)) - 
-pow(d,2)*(pow(r,4) - 6*pow(r,2)*pow(sig,2)))*std::expint(-(pow(d + r,2)/pow(sig,2))))/sqrt(M_PI)))/
-(32.*pow(d,4)*pow(r,2)*pow(sig,4));
+	return -(-(((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) - sqrt(M_PI)*(pow(d,3) + 2*pow(r,3))*erfc(fabs(d - r)/sig))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2)))
+	+ (((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) + sqrt(M_PI)*(pow(d,3) + 2*pow(r,3))*erfc(fabs(d - r)/sig))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2))));
 }
-double EnergyAngularIntegral_real_derivative2_xx_xx( double sig, double r, double d )
+
+double real_derivative2_aux_grad_z_zz( double sig, double r, double d )
 {
-return ((128*sqrt(M_PI)*pow(d - r,4)*pow(sig,3)*(-9*d*pow(r,3) - 9*pow(r,4) + pow(d,4)*(-9 + 5*sig) + pow(d,3)*r*(-9 + 5*sig) + pow(d,2)*pow(r,2)*(-9 + 5*sig))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + 
-(pow(sig,2)*(45*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 90*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 
-18*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) + 
-9*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) - 
-4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(45*pow(r,2)*(-1 + sig) - pow(sig,2)*(63 + 65*sig)) - 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(45*pow(r,4)*(-1 + sig) + 2*pow(sig,4)*(63 + 65*sig) - 2*pow(r,2)*pow(sig,2)*(171 + 85*sig)) - 
-pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(45*pow(r,2)*(-1 + sig) + pow(sig,2)*(-657 + 145*sig)) - 
-128*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(d + r)*sig*(9*d*pow(r,3) - 9*pow(r,4) + pow(d,3)*r*(9 - 5*sig) + pow(d,4)*(-9 + 5*sig) + pow(d,2)*pow(r,2)*(-9 + 5*sig))*erfc((d + r)/sig)) + 
-45*pow(M_E,pow(d + r,2)/pow(sig,2))*pow(pow(d,2) - pow(r,2),2)*(-1 + sig)*(pow(d,4) + pow(r,4) + 12*pow(r,2)*pow(sig,2) - 2*pow(d,2)*(pow(r,2) - 6*pow(sig,2)))*
-(std::expint(-(pow(d - r,2)/pow(sig,2))) - std::expint(-(pow(d + r,2)/pow(sig,2)))))/pow(M_E,pow(d + r,2)/pow(sig,2)))/(1280.*pow(d,5)*sqrt(M_PI)*pow(r,3)*pow(sig,4));
+	return -(-(-0.05*((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(11*pow(r,2) + 2*pow(sig,2)) + 3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) - 6*pow(r,5))*erfc((d + r)/sig) + 
+	2*sqrt(M_PI)*(4*pow(d,5) + 5*pow(d,2)*pow(r,3) + 6*pow(r,5))*erfc(fabs(d - r)/sig))/(pow(d,4)*sqrt(M_PI)*pow(r,3)))
+	+ (-0.05*((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(11*pow(r,2) + 2*pow(sig,2)) + 3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) - 6*pow(r,5))*erfc((d + r)/sig) - 
+	2*sqrt(M_PI)*(4*pow(d,5) + 5*pow(d,2)*pow(r,3) + 6*pow(r,5))*erfc(fabs(d - r)/sig))/(pow(d,4)*sqrt(M_PI)*pow(r,3))));
 }
-double EnergyAngularIntegral_real_derivative2_xx_yy( double sig, double r, double d )
+//// Integral Functions
+
+double EnergyAngularIntegral_real_derivative2_xx_ss( double sig, double r, double d )	// Discontinuous
 {
-return ((15*pow(pow(d,2) - pow(r,2),4)*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + (60*pow(pow(d,2) - pow(r,2),2)*pow(sig,3)*(-3*pow(r,2) + pow(d,2)*(-3 + 4*sig))*erfc(fabs(d - r)/sig))/fabs(d - r)
- + 30*pow(sig,3)*(-9*pow(r,4) + 2*pow(d,2)*pow(r,2)*(-3 + 8*sig) + pow(d,4)*(-9 + 16*sig))*fabs(d - r)*erfc(fabs(d - r)/sig) - 
-20*pow(sig,3)*(-3*pow(r,2) + pow(d,2)*(-3 + 4*sig))*pow(fabs(d - r),3)*erfc(fabs(d - r)/sig) - 9*pow(sig,3)*pow(fabs(d - r),5)*erfc(fabs(d - r)/sig) + 
-(pow(sig,2)*(15*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 30*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 
-6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) + 
-3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) - 
-4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(15*pow(r,2)*(-1 + sig) + pow(sig,2)*(-21 + 85*sig)) - 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,4)*(-1 + sig) + 2*(21 - 85*sig)*pow(sig,4) + 2*pow(r,2)*pow(sig,2)*(-57 + 185*sig)) - 
-pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,2)*(-1 + sig) + pow(sig,2)*(-219 + 475*sig)) - 
-128*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(d + r)*sig*(3*d*pow(r,3) - 3*pow(r,4) + pow(d,3)*r*(3 - 5*sig) + pow(d,4)*(-3 + 5*sig) + pow(d,2)*pow(r,2)*(-3 + 5*sig))*erfc((d + r)/sig)) + 
-15*pow(M_E,pow(d + r,2)/pow(sig,2))*pow(pow(d,2) - pow(r,2),2)*(-1 + sig)*(pow(d,4) + pow(r,4) + 12*pow(r,2)*pow(sig,2) - 2*pow(d,2)*(pow(r,2) - 6*pow(sig,2)))*
-(std::expint(-(pow(d - r,2)/pow(sig,2))) - std::expint(-(pow(d + r,2)/pow(sig,2)))))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)))/(1280.*pow(d,5)*pow(r,3)*pow(sig,4));
+	return -0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*r) + erfc((d + r)/sig) + (pow(d - r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/pow(d,3);
 }
-double EnergyAngularIntegral_real_derivative2_xx_zz( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xx_sz( double sig, double r, double d )	// Discontinuous
 {
-return ((32*pow(sig,3)*(-12*d*pow(r,5) - 12*pow(r,6) + 15*pow(d,4)*pow(r,2)*(-1 + sig) + 5*pow(d,3)*pow(r,3)*(-3 + 2*sig) + 5*pow(d,2)*pow(r,4)*(-3 + 2*sig) + 2*pow(d,6)*(-6 + 5*sig) + 
-2*pow(d,5)*r*(-6 + 5*sig))*erfc((d + r)/sig))/(d + r) - (32*pow(d - r,2)*pow(sig,3)*(12*d*pow(r,5) - 12*pow(r,6) + 15*pow(d,4)*pow(r,2)*(-1 + sig) - 5*pow(d,3)*pow(r,3)*(-3 + 2*sig) + 
-5*pow(d,2)*pow(r,4)*(-3 + 2*sig) + 2*pow(d,6)*(-6 + 5*sig) - 2*pow(d,5)*r*(-6 + 5*sig))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + 
-(-((pow(sig,2)*(15*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 30*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 
-pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(45*pow(r,2)*(-1 + sig) + (219 - 155*sig)*pow(sig,2)) + 4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(15*pow(r,2)*(-1 + sig) + (21 - 5*sig)*pow(sig,2)) + 
-6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) + 
-3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) + 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(45*pow(r,4)*(-1 + sig) + 2*pow(sig,4)*(-21 + 5*sig) + 2*pow(r,2)*pow(sig,2)*(147 + 125*sig))))/pow(M_E,pow(d + r,2)/pow(sig,2))) - 
-15*(pow(d,2) + pow(r,2))*(-1 + sig)*(pow(d,6) - pow(d,2)*pow(r,4) + pow(r,6) + 12*pow(r,4)*pow(sig,2) - pow(d,4)*(pow(r,2) - 12*pow(sig,2)))*std::expint(-(pow(d - r,2)/pow(sig,2))) + 
-15*(pow(d,2) + pow(r,2))*(-1 + sig)*(pow(d,6) - pow(d,2)*pow(r,4) + pow(r,6) + 12*pow(r,4)*pow(sig,2) - pow(d,4)*(pow(r,2) - 12*pow(sig,2)))*std::expint(-(pow(d + r,2)/pow(sig,2))))/sqrt(M_PI))/
-(320.*pow(d,5)*pow(r,3)*pow(sig,4));
+	return (sqrt(3)*((-8*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*sig + 4*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig*(-2*pow(r,2) + pow(sig,2)) - 
+	8*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*pow(r,3)*erfc((d + r)/sig))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) - 
+	(8*pow(d - r,3)*pow(r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(16.*pow(d,4)*pow(r,2));
 }
-double EnergyAngularIntegral_real_derivative2_xy_xy( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xx_xx( double sig, double r, double d )	// Continuous
 {
-return (3*((-128*sqrt(M_PI)*pow(d - r,4)*(pow(d,4) + pow(d,3)*r + pow(d,2)*pow(r,2) + d*pow(r,3) + pow(r,4))*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + 
-(pow(sig,2)*(5*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 10*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) - 
-4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,2)*(-1 + sig) - pow(sig,2)*(7 + 25*sig)) + 
-2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) - 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,4)*(-1 + sig) + 2*pow(sig,4)*(7 + 25*sig) - 2*pow(r,2)*pow(sig,2)*(19 + 45*sig)) - 
-pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,2)*(-1 + sig) - pow(sig,2)*(73 + 55*sig)) + 
-(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) + 
-128*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(pow(d,5) + pow(r,5))*sig*erfc((d + r)/sig)) + 
-5*pow(M_E,pow(d + r,2)/pow(sig,2))*pow(pow(d,2) - pow(r,2),2)*(-1 + sig)*(pow(d,4) + pow(r,4) + 12*pow(r,2)*pow(sig,2) - 2*pow(d,2)*(pow(r,2) - 6*pow(sig,2)))*
-(std::expint(-(pow(d - r,2)/pow(sig,2))) - std::expint(-(pow(d + r,2)/pow(sig,2)))))/pow(M_E,pow(d + r,2)/pow(sig,2))))/(1280.*pow(d,5)*sqrt(M_PI)*pow(r,3)*pow(sig,4));
+	return ((sig*(16*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) + 16*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 18*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	8*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2)) + 9*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + 4*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) + 9*pow(r,5))*erfc((d + r)/sig) - 
+	(4*sqrt(M_PI)*pow(d - r,4)*(4*pow(d,4) + 4*pow(d,3)*r + 4*pow(d,2)*pow(r,2) + 9*d*pow(r,3) + 9*pow(r,4))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/
+	(40.*pow(d,5)*sqrt(M_PI)*pow(r,3));
 }
-double EnergyAngularIntegral_real_derivative2_xz_sz( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xx_yy( double sig, double r, double d )	// Continous
 {
-return (3*((-16*pow(d - r,3)*pow(r,3)*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) - (pow(sig,2)*
-(-(pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig)) - 2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) - 2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig)*pow(sig,2) + 
-2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(pow(r,2)*(-1 + sig) + pow(sig,2)*(1 + 7*sig)) + 
-(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(r,4)*(-1 + sig) + 8*pow(r,2)*pow(sig,2)*(1 + sig) - pow(sig,4)*(1 + 7*sig)) + 16*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*pow(r,3)*sig*erfc((d + r)/sig)) - 
-pow(M_E,pow(d + r,2)/pow(sig,2))*(pow(d,2) - pow(r,2))*(-1 + sig)*(pow(d,4) + pow(r,4) + 9*pow(r,2)*pow(sig,2) + pow(d,2)*(-2*pow(r,2) + 3*pow(sig,2)))*
-(std::expint(-(pow(d - r,2)/pow(sig,2))) - std::expint(-(pow(d + r,2)/pow(sig,2)))))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI))))/(32.*pow(d,4)*pow(r,2)*pow(sig,4));
+	return ((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) - 
+	4*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2)) + 3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 4*sqrt(M_PI)*pow(d + r,2)*(2*pow(d,3) - 4*pow(d,2)*r + 6*d*pow(r,2) - 3*pow(r,3))*erfc((d + r)/sig) + 
+	(4*sqrt(M_PI)*pow(d - r,5)*(2*pow(d,3) + 4*pow(d,2)*r + 6*d*pow(r,2) + 3*pow(r,3))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/(40.*pow(d,5)*sqrt(M_PI)*pow(r,3));
 }
-double EnergyAngularIntegral_real_derivative2_xz_xz( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xx_zz( double sig, double r, double d )	// Discontinous
 {
-return (3*((5*pow(pow(d,2) - pow(r,2),3)*(pow(d,2) + pow(r,2))*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) - (30*(pow(d,6) + pow(d,2)*pow(r,4) - 
-2*pow(r,6))*pow(sig,3)*erfc(fabs(d - r)/sig))/fabs(d - r) + 30*pow(r,2)*(pow(d,2) + 3*pow(r,2))*pow(sig,3)*fabs(d - r)*erfc(fabs(d - r)/sig) - 10*(pow(d,2) + 
-2*pow(r,2))*pow(sig,3)*pow(fabs(d - r),3)*erfc(fabs(d - r)/sig) + 3*pow(sig,3)*pow(fabs(d - r),5)*erfc(fabs(d - r)/sig) + (pow(sig,2)*(5*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 
-10*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2)*(-1 + 5*sig) + pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,2)*(-1 + sig) + 
-pow(sig,2)*(7 + 25*sig)) - 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) - 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,4)*(-1 + sig) + 4*pow(sig,4)*(-1 + 5*sig) + 2*pow(r,2)*pow(sig,2)*(9 + 55*sig)) - 
-(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) + 
-32*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(pow(d,5) - 4*pow(r,5))*sig*erfc((d + r)/sig)) + 
-5*pow(M_E,pow(d + r,2)/pow(sig,2))*(pow(d,2) - pow(r,2))*(-1 + sig)*(pow(d,6) + pow(r,6) + 12*pow(r,4)*pow(sig,2) - pow(d,4)*(pow(r,2) - 6*pow(sig,2)) - 
-pow(d,2)*(pow(r,4) - 6*pow(r,2)*pow(sig,2)))*(std::expint(-(pow(d - r,2)/pow(sig,2))) - std::expint(-(pow(d + r,2)/pow(sig,2)))))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI))))/
-(320.*pow(d,5)*pow(r,3)*pow(sig,4));
+	return -0.1*((sig*(2*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) + 2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(17*pow(r,2) - pow(sig,2)) + 3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)) + (2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*erfc((d + r)/sig) - 
+	(pow(d - r,3)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3) - 12*pow(r,5))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/(pow(d,5)*pow(r,3));
 }
-double EnergyAngularIntegral_real_derivative2_zz_ss( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xy_xy( double sig, double r, double d )	// Continuous
 {
-return -(-((pow(sig,2)*(2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + 9*sig) + (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(r,2)*(-1 + sig) + 
-pow(sig,2)*(3 + 5*sig))))/pow(M_E,pow(d + r,2)/pow(sig,2))) - (4*sqrt(M_PI)*(2*d*r + 2*pow(r,2) + pow(d,2)*(-1 + sig))*pow(sig,3)*erfc((d + r)/sig))/(d + r) - 
-(sqrt(M_PI)*pow(pow(d,2) - pow(r,2),2)*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + (2*sqrt(M_PI)*pow(sig,3)*(3*pow(r,2) + pow(d,2)*(-3 + 2*sig))*erfc(fabs(d - r)/sig))/fabs(d - r) + 
-3*sqrt(M_PI)*pow(sig,3)*fabs(d - r)*erfc(fabs(d - r)/sig) - (pow(d,2) - pow(r,2))*(-1 + sig)*(pow(d,2) - pow(r,2) - 6*pow(sig,2))*std::expint(-(pow(d - r,2)/pow(sig,2))) + 
-(pow(d,2) - pow(r,2))*(-1 + sig)*(pow(d,2) - pow(r,2) - 6*pow(sig,2))*std::expint(-(pow(d + r,2)/pow(sig,2))))/(8.*pow(d,3)*sqrt(M_PI)*r*pow(sig,4));
+	return (3*((sig*(4*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) + 4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2)) + (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + 4*sqrt(M_PI)*(pow(d,5) + pow(r,5))*erfc((d + r)/sig) - 
+	(4*sqrt(M_PI)*pow(d - r,4)*(pow(d,4) + pow(d,3)*r + pow(d,2)*pow(r,2) + d*pow(r,3) + pow(r,4))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(40.*pow(d,5)*sqrt(M_PI)*pow(r,3));
 }
-double EnergyAngularIntegral_real_derivative2_zz_sz( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xz_sx( double sig, double r, double d )	// Discontinuous
 {
-return (sqrt(3)*((8*(2*d*pow(r,3) + 2*pow(r,4) + pow(d,4)*(-1 + sig) + pow(d,3)*r*(-1 + sig) + pow(d,2)*pow(r,2)*(-1 + sig))*pow(sig,3)*erfc((d + r)/sig))/(d + r) + 
-(pow(pow(d,2) - pow(r,2),2)*(pow(d,2) + pow(r,2))*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + 
-((-9*pow(r,4) + pow(d,4)*(3 - 4*sig) + 2*pow(d,2)*pow(r,2)*(3 - 2*sig))*pow(sig,3)*erfc(fabs(d - r)/sig))/fabs(d - r) - pow(sig,3)*(9*pow(r,2) + pow(d,2)*(-3 + 4*sig))*fabs(d - r)*erfc(fabs(d - r)/sig) + 
-pow(sig,3)*pow(fabs(d - r),3)*erfc(fabs(d - r)/sig) + ((pow(sig,2)*(pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + 9*sig) + 
-2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(r,2)*(-1 + sig) - 2*pow(sig,2)*(1 + sig)) + 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(pow(r,2)*(-1 + sig) + pow(sig,2)*(1 + 7*sig)) + 
-(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(r,4)*(-1 + sig) + 8*pow(r,2)*pow(sig,2)*(1 + sig) - pow(sig,4)*(1 + 7*sig))))/pow(M_E,pow(d + r,2)/pow(sig,2)) + 
-(pow(d,2) - pow(r,2))*(-1 + sig)*(pow(d,4) - 3*pow(d,2)*pow(sig,2) - pow(r,2)*(pow(r,2) + 9*pow(sig,2)))*std::expint(-(pow(d - r,2)/pow(sig,2))) + 
-(pow(d,2) - pow(r,2))*(-1 + sig)*(-pow(d,4) + pow(r,4) + 3*pow(d,2)*pow(sig,2) + 9*pow(r,2)*pow(sig,2))*std::expint(-(pow(d + r,2)/pow(sig,2))))/sqrt(M_PI)))/(16.*pow(d,4)*pow(r,2)*pow(sig,4));
+	return (sqrt(3)*((-2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*sig)/pow(M_E,pow(d + r,2)/pow(sig,2)) + 
+	((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig*(-2*pow(r,2) + pow(sig,2)))/pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*pow(r,3)*erfc((d + r)/sig) - 
+	(2*sqrt(M_PI)*pow(d - r,3)*pow(r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(4.*pow(d,4)*sqrt(M_PI)*pow(r,2));
 }
-double EnergyAngularIntegral_real_derivative2_zz_xx( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_xz_xz( double sig, double r, double d )	// Discontinuous
 {
-return ((-15*pow(pow(d,2) - pow(r,2),4)*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) + (60*pow(pow(d,2) - pow(r,2),2)*pow(sig,3)*(3*pow(r,2) + pow(d,2)*sig)*erfc(fabs(d - r)/sig))/fabs(d - r) + 
-30*pow(sig,3)*(9*pow(r,4) + 2*pow(d,2)*pow(r,2)*(-3 + 2*sig) + pow(d,4)*(-3 + 4*sig))*fabs(d - r)*erfc(fabs(d - r)/sig) - 20*pow(sig,3)*(3*pow(r,2) + pow(d,2)*sig)*pow(fabs(d - r),3)*erfc(fabs(d - r)/sig) + 
-9*pow(sig,3)*pow(fabs(d - r),5)*erfc(fabs(d - r)/sig) + (pow(sig,2)*(-15*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) - 30*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 
-pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,2)*(-1 + sig) + (81 - 145*sig)*pow(sig,2)) - 
-6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) - 
-3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) + 
-4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(15*pow(r,2)*(-1 + sig) + pow(sig,2)*(9 + 95*sig)) + 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,4)*(-1 + sig) + 2*pow(r,2)*(93 - 125*sig)*pow(sig,2) - 2*pow(sig,4)*(9 + 95*sig)) - 
-32*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(d + r)*sig*(-12*d*pow(r,3) + 12*pow(r,4) + pow(d,3)*r*(3 - 5*sig) + pow(d,4)*(-3 + 5*sig) + pow(d,2)*pow(r,2)*(-3 + 5*sig))*erfc((d + r)/sig) - 
-15*pow(M_E,pow(d + r,2)/pow(sig,2))*pow(pow(d,2) - pow(r,2),2)*(-1 + sig)*(pow(d,4) - 2*pow(d,2)*pow(r,2) + pow(r,4) + 12*pow(r,2)*pow(sig,2))*
-(std::expint(-(pow(d - r,2)/pow(sig,2))) - std::expint(-(pow(d + r,2)/pow(sig,2))))))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)))/(320.*pow(d,5)*pow(r,3)*pow(sig,4));
+	return (-3*((sig*(-2*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 4*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(8*pow(r,2) + pow(sig,2)) + 2*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(pow(d,5) - 4*pow(r,5))*erfc((d + r)/sig) + 
+	(2*sqrt(M_PI)*pow(d - r,3)*(pow(d,5) + 4*pow(r,5))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(20.*pow(d,5)*sqrt(M_PI)*pow(r,3));
 }
-double EnergyAngularIntegral_real_derivative2_zz_zz( double sig, double r, double d )
+
+
+double EnergyAngularIntegral_real_derivative2_zz_ss( double sig, double r, double d )	// Discontinuous
 {
-return ((16*pow(sig,3)*(24*d*pow(r,5) + 24*pow(r,6) + 15*pow(d,4)*pow(r,2)*(-1 + sig) + 10*pow(d,3)*pow(r,3)*sig + 10*pow(d,2)*pow(r,4)*sig + 2*pow(d,6)*(-3 + 5*sig) + 
-2*pow(d,5)*r*(-3 + 5*sig))*erfc((d + r)/sig))/(d + r) + (15*pow(pow(d,4) - pow(r,4),2)*pow(sig,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3) - 
-(60*(pow(d,2) + pow(r,2))*pow(sig,3)*(3*pow(r,4) + pow(d,2)*pow(r,2)*(-3 + sig) + pow(d,4)*sig)*erfc(fabs(d - r)/sig))/fabs(d - r) - 
-30*pow(sig,3)*(9*pow(r,4) + 4*pow(d,2)*pow(r,2)*sig + pow(d,4)*(-3 + 4*sig))*fabs(d - r)*erfc(fabs(d - r)/sig) + 20*pow(sig,3)*(3*pow(r,2) + pow(d,2)*sig)*pow(fabs(d - r),3)*erfc(fabs(d - r)/sig) - 
-9*pow(sig,3)*pow(fabs(d - r),5)*erfc(fabs(d - r)/sig) + ((pow(sig,2)*(15*pow(d,6)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(-1 + sig) + 30*pow(d,5)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(-1 + sig) + 
-6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(5*pow(r,4)*(-1 + sig) - 6*pow(sig,4)*(1 + 15*sig) + 2*pow(r,2)*pow(sig,2)*(7 + 25*sig)) + 
-3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(5*pow(r,6)*(-1 + sig) + 6*pow(sig,6)*(1 + 15*sig) - 2*pow(r,2)*pow(sig,4)*(7 + 25*sig) + pow(r,4)*pow(sig,2)*(73 + 55*sig)) + 
-4*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(15*pow(r,2)*(-1 + sig) - pow(sig,2)*(9 + 95*sig)) + pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,2)*(-3 + 35*sig) + pow(sig,2)*(-81 + 145*sig)) + 
-pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(45*pow(r,4)*(-1 + sig) + 2*pow(sig,4)*(9 + 95*sig) + 2*pow(r,2)*pow(sig,2)*(-3 + 275*sig))))/pow(M_E,pow(d + r,2)/pow(sig,2)) + 
-15*(pow(d,4) - pow(r,4))*(-1 + sig)*(pow(d,4) - pow(r,2)*(pow(r,2) + 12*pow(sig,2)))*std::expint(-(pow(d - r,2)/pow(sig,2))) - 
-15*(pow(d,4) - pow(r,4))*(-1 + sig)*(pow(d,4) - pow(r,2)*(pow(r,2) + 12*pow(sig,2)))*std::expint(-(pow(d + r,2)/pow(sig,2))))/sqrt(M_PI))/(160.*pow(d,5)*pow(r,3)*pow(sig,4));
+	return (((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(d,2) + pow(sig,2)))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*r*sig) + erfc((d + r)/sig) + 
+	(pow(d - r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/pow(d,3);
+}
+
+
+double EnergyAngularIntegral_real_derivative2_zz_sz( double sig, double r, double d )	// Discontinuous
+{
+	return (sqrt(3)*((2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2) + 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2) + 
+	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(2*pow(r,2) - pow(sig,2)) + 2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*pow(r,3)*sig*erfc((d + r)/sig))/
+	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*sig) + (2*pow(d - r,3)*pow(r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(2.*pow(d,4)*pow(r,2));
+}
+
+
+double EnergyAngularIntegral_real_derivative2_zz_xx( double sig, double r, double d )	// Continuous
+{
+	return -0.05*((sig*(4*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 26*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 12*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,2) + 13*pow(sig,2)) + 6*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + 4*sqrt(M_PI)*(pow(d,5) - 5*pow(d,2)*pow(r,3) + 6*pow(r,5))*erfc((d + r)/sig) - 
+	(4*sqrt(M_PI)*pow(d - r,4)*(pow(d,4) + pow(d,3)*r + pow(d,2)*pow(r,2) + 6*d*pow(r,3) + 6*pow(r,4))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/(pow(d,5)*sqrt(M_PI)*pow(r,3));
+}
+
+
+double EnergyAngularIntegral_real_derivative2_zz_zz( double sig, double r, double d )	// Discontinuous
+{
+	return ((-26*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2) + 12*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2)*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,2) + 2*pow(sig,2)) + pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(34*pow(r,2) + 13*pow(sig,2)) + 
+	6*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4)) + 
+	2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*sig*erfc((d + r)/sig))/pow(M_E,pow(d + r,2)/pow(sig,2)) - 
+	(2*sqrt(M_PI)*pow(d - r,3)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3) - 12*pow(r,5))*sig*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/(10.*pow(d,5)*sqrt(M_PI)*pow(r,3)*sig);
 }
 
 

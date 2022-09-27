@@ -66,7 +66,7 @@ void Manager::set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector
 	h_tmp_y_ws.setZero();					// initialise
 	h_tmp_z_ws.setZero();					// initialise
 	
-	// evalulation block
+	// 1. Compute first derivative integrals in a local symmetry
 	h_tmp_x(0,1) = this->man_lp_matrix_h.real_sx_grad_x_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
 	h_tmp_x(1,0) = h_tmp_x(0,1);
 	h_tmp_x(1,3) = this->man_lp_matrix_h.real_xz_grad_x_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
@@ -82,17 +82,17 @@ void Manager::set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector
 	h_tmp_z(2,2) = h_tmp_z(1,1);
 	h_tmp_z(3,3) = this->man_lp_matrix_h.real_zz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
 
+	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
 	// note : h_tmp_*_ws are in the local reference frame, their x'/y'/z' element (local) has to be inversed to x/y/z (global) 
 	h_tmp_x_ws = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_x * this->man_lp_matrix_h.transform_matrix;
 	h_tmp_y_ws = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_y * this->man_lp_matrix_h.transform_matrix;
 	h_tmp_z_ws = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_z * this->man_lp_matrix_h.transform_matrix;
 
+	// 3. Transform back to the global reference frame
 	for(int i=0;i<4;i++)
 	{	for(int j=0;j<4;j++)
-		{
-			v_loc << h_tmp_x_ws(i,j), h_tmp_y_ws(i,j), h_tmp_z_ws(i,j);
+		{	v_loc << h_tmp_x_ws(i,j), h_tmp_y_ws(i,j), h_tmp_z_ws(i,j);
 			v_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * v_loc;
-
 			this->real_lp_h_pc_x[lp_i][pc_i](i,j) =  v_glo(0);
 			this->real_lp_h_pc_y[lp_i][pc_i](i,j) =  v_glo(1);
 			this->real_lp_h_pc_z[lp_i][pc_i](i,j) =  v_glo(2);
@@ -100,50 +100,229 @@ void Manager::set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector
 	}
 }
 
-void Manager::set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
+void Manager::set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
 {
 	this->man_lp_matrix_h.GetTransformationMatrix(R);	// get Transformation matrix ... saved : Eigen::Matrix4d this->man_lp_matrix_h.transform_matrix;
-	Eigen::Matrix4d h_tmp_d2[9];
-	Eigen::Matrix4d h_tmp_d2_ws[9];
+	Eigen::Matrix4d h_tmp_d2[3][3];
+	Eigen::Matrix4d h_d2_ws[3][3];
+	Eigen::Matrix3d m_loc,m_glo;
 
-	for(int i=0;i<9;i<++) { h_tmp_d2[i].setZero(); h_tmp_d2_ws[i].setZero(); }	// Initialise
+	for(int i=0;i<3;i++) { for(int j=0;j<3;j++) { h_tmp_d2[i][j].setZero(); h_d2_ws[i][j].setZero(); }}	// Initialise workspace
 
-	// xx h_matrix loc
-	h_tmp_d2[0]
+	// [0][0] xx h_matrix loc
+	h_tmp_d2[0][0](0,0) = this->man_lp_matrix_h.real_ss_grad2_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][0] - XX, (0,0) ss
+	h_tmp_d2[0][0](0,3) = this->man_lp_matrix_h.real_sz_grad2_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][0] - XX, (0,3) sz
+	h_tmp_d2[0][0](3,0) = h_tmp_d2[0][0](0,3);
+	h_tmp_d2[0][0](1,1) = this->man_lp_matrix_h.real_xx_grad2_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][0] - XX, (1,1) xx
+	h_tmp_d2[0][0](2,2) = this->man_lp_matrix_h.real_yy_grad2_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][0] - XX, (2,2) yy
+	h_tmp_d2[0][0](3,3) = this->man_lp_matrix_h.real_zz_grad2_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][0] - XX, (3,3) zz
 
-}
+	std::cout << "loc XX : " << std::endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	printf("%20.12lf\t",h_tmp_d2[0][0](i,j));
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+
+	// [0][1] xy h_matrix loc
+	h_tmp_d2[0][1](1,2) = this->man_lp_matrix_h.real_xy_grad2_xy_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][1] - XY, (1,2) xy
+	h_tmp_d2[0][1](2,1) = h_tmp_d2[0][1](1,2);
+
+	std::cout << "loc XY : " << std::endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	printf("%20.12lf\t",h_tmp_d2[0][1](i,j));
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+	
+	// [0][2] xz h_matrix loc
+	h_tmp_d2[0][2](0,1) = this->man_lp_matrix_h.real_sx_grad2_xz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][2] - XZ, (0,1) sx
+	h_tmp_d2[0][2](1,0) = h_tmp_d2[0][2](0,1);
+	h_tmp_d2[0][2](1,3) = this->man_lp_matrix_h.real_xz_grad2_xz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][2] - XZ, (1,3) xz
+	h_tmp_d2[0][2](3,1) = h_tmp_d2[0][2](1,3);
+
+	std::cout << "loc XZ : " << std::endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	printf("%20.12lf\t",h_tmp_d2[0][2](i,j));
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+
+	std::cout << "Distance : " << R.norm() << std::endl;
+	std::cout << "Sigam    : " << sig << std::endl;
+	// [2][2] zz h_matix loc
+	h_tmp_d2[2][2](0,0) = this->man_lp_matrix_h.real_ss_grad2_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [2][2] - ZZ, (0,0) ss
+	h_tmp_d2[2][2](0,3) = this->man_lp_matrix_h.real_sz_grad2_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [2][2] - ZZ, (0,3) sz
+	h_tmp_d2[2][2](3,0) = h_tmp_d2[2][2](0,3);
+	h_tmp_d2[2][2](1,1) = this->man_lp_matrix_h.real_xx_grad2_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [2][2] - ZZ, (0,3) xx
+	h_tmp_d2[2][2](2,2) = h_tmp_d2[2][2](1,1);
+	h_tmp_d2[2][2](3,3) = this->man_lp_matrix_h.real_zz_grad2_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [2][2] - ZZ, (3,3) zz
+
+	std::cout << "loc ZZ : " << std::endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	printf("%20.12lf\t",h_tmp_d2[2][2](i,j));
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+
+	// Below here, done by the orbital symmetry
+	// [1][0] yx - [0][1] xy
+	h_tmp_d2[1][0] = h_tmp_d2[0][1];
+	// [1][1] yy ~ [0][0] xx
+	h_tmp_d2[1][1] = h_tmp_d2[0][0];
+	h_tmp_d2[1][1](1,1) = h_tmp_d2[0][0](2,2);	// YY - xx = XX - yy
+	h_tmp_d2[1][1](2,2) = h_tmp_d2[0][0](1,1);	// YY - yy = XX - xx
+	// [1][2] yz ~ [0][2] xz
+	h_tmp_d2[1][2](0,2) = h_tmp_d2[1][2](2,0) = h_tmp_d2[0][2](0,1);	// YZ - sy = XZ - sx
+	h_tmp_d2[1][2](2,3) = h_tmp_d2[1][2](3,2) = h_tmp_d2[0][2](1,3);	// YZ - yz = XZ - xz
+	// [2][0] zx - [0][2] xz
+	h_tmp_d2[2][0] = h_tmp_d2[0][2];
+	// [2][1] zy - [1][2] yz
+	h_tmp_d2[2][1] = h_tmp_d2[1][2];
+	//// End of Local element Set
+
+	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
+	for(int i=0;i<3;i++){ for(int j=0;j<3;j++){ h_d2_ws[i][j] = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_d2[i][j] * this->man_lp_matrix_h.transform_matrix; }}
+
+	// 3. Transform back to the global reference frame - i,j refer to basis functions
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	
+			m_loc << h_d2_ws[0][0](i,j), h_d2_ws[0][1](i,j), h_d2_ws[0][2](i,j),
+				 h_d2_ws[1][0](i,j), h_d2_ws[1][1](i,j), h_d2_ws[1][2](i,j),
+				 h_d2_ws[2][0](i,j), h_d2_ws[2][1](i,j), h_d2_ws[2][2](i,j);
+
+			m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+
+			this->real_lp_h_lp_xx[lp_i][pc_i](i,j) = m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](i,j) = m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](i,j) = m_glo(0,2);
+			this->real_lp_h_lp_yx[lp_i][pc_i](i,j) = m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](i,j) = m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](i,j) = m_glo(1,2);
+			this->real_lp_h_lp_zx[lp_i][pc_i](i,j) = m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](i,j) = m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](i,j) = m_glo(2,2);
+		}
+	}
 /*
-void Manager::set_h_matrix_real_pc_derivative_y( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
-{
-	this->man_lp_matrix_h.GetTransformationMatrix(R);	// get Transformation matrix ... saved : Eigen::Matrix4d this->man_lp_matrix_h.transform_matrix;
-	Eigen::Matrix4d h_tmp;					// calculating local h_matrix WS
-	h_tmp.setZero();					// initialise
-	
-	// evalulation block
-	h_tmp(0,2) = this->man_lp_matrix_h.real_sx_grad_x_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
-	h_tmp(2,0) = h_tmp(0,2);
-	h_tmp(2,3) = this->man_lp_matrix_h.real_xz_grad_x_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
-	h_tmp(3,2) = h_tmp(2,3);
-	
-	this->real_lp_h_pc_y[lp_i][pc_i] = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp * this->man_lp_matrix_h.transform_matrix;	// inverse transformation
+	//// transformation (SS)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](0,0); }}	// k,l - x,y,z , (0,0) - (s,s)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](0,0) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](0,0) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](0,0) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](0,0) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](0,0) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](0,0) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](0,0) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](0,0) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](0,0) =  m_glo(2,2);
+	//// transformation (SX)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](0,1); }}	// k,l - x,y,z , (0,1) - (s,x)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	//m_glo = this->man_lp_matrix_h.transform_matrix_shorthand * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand.transpose();
+	this->real_lp_h_lp_xx[lp_i][pc_i](0,1) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](0,1) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](0,1) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](0,1) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](0,1) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](0,1) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](0,1) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](0,1) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](0,1) =  m_glo(2,2);
+	//// transformation (SY)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](0,2); }}	// k,l - x,y,z , (0,2) - (s,y)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](0,2) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](0,2) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](0,2) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](0,2) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](0,2) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](0,2) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](0,2) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](0,2) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](0,2) =  m_glo(2,2);
+	//// transformation (SZ)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](0,3); }}	// k,l - x,y,z , (0,3) - (s,z)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](0,3) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](0,3) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](0,3) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](0,3) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](0,3) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](0,3) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](0,3) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](0,3) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](0,3) =  m_glo(2,2);
+	//// transformation (XX)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](1,1); }}	// k,l - x,y,z , (1,1) - (x,x)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](1,1) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](1,1) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](1,1) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](1,1) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](1,1) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](1,1) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](1,1) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](1,1) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](1,1) =  m_glo(2,2);
+	//// transformation (XY)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](1,2); }}	// k,l - x,y,z , (1,2) - (x,y)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](1,2) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](1,2) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](1,2) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](1,2) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](1,2) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](1,2) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](1,2) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](1,2) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](1,2) =  m_glo(2,2);
+	//// transformation (XZ)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](1,3); }}	// k,l - x,y,z , (1,3) - (x,z)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](1,3) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](1,3) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](1,3) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](1,3) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](1,3) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](1,3) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](1,3) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](1,3) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](1,3) =  m_glo(2,2);
+	//// transformation (YY)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](2,2); }}	// k,l - x,y,z , (2,2) - (y,y)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](2,2) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](2,2) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](2,2) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](2,2) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](2,2) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](2,2) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](2,2) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](2,2) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](2,2) =  m_glo(2,2);
+	//// transformation (YZ)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](2,3); }}	// k,l - x,y,z , (2,3) - (y,z)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](2,3) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](2,3) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](2,3) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](2,3) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](2,3) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](2,3) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](2,3) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](2,3) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](2,3) =  m_glo(2,2);
+	//// transformation (ZZ)
+	for(int k=0;k<3;k++){ for(int l=0;l<3;l++) { m_loc(k,l) = h_tmp_d2[k][l](3,3); }}	// k,l - x,y,z , (3,3) - (z,z)
+	m_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * m_loc * this->man_lp_matrix_h.transform_matrix_shorthand;
+	this->real_lp_h_lp_xx[lp_i][pc_i](3,3) =  m_glo(0,0); this->real_lp_h_lp_xy[lp_i][pc_i](3,3) =  m_glo(0,1); this->real_lp_h_lp_xz[lp_i][pc_i](3,3) =  m_glo(0,2);
+	this->real_lp_h_lp_yx[lp_i][pc_i](3,3) =  m_glo(1,0); this->real_lp_h_lp_yy[lp_i][pc_i](3,3) =  m_glo(1,1); this->real_lp_h_lp_yz[lp_i][pc_i](3,3) =  m_glo(1,2);
+	this->real_lp_h_lp_zx[lp_i][pc_i](3,3) =  m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](3,3) =  m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](3,3) =  m_glo(2,2);
+
+	//// Symmetrisation
+	for(int i=0;i<4;i++)
+	{	for(int j=i+1;j<4;j++)
+		{
+			this->real_lp_h_lp_xx[lp_i][pc_i](j,i) = this->real_lp_h_lp_xx[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_xy[lp_i][pc_i](j,i) = this->real_lp_h_lp_xy[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_xz[lp_i][pc_i](j,i) = this->real_lp_h_lp_xz[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_yx[lp_i][pc_i](j,i) = this->real_lp_h_lp_yx[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_yy[lp_i][pc_i](j,i) = this->real_lp_h_lp_yy[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_yz[lp_i][pc_i](j,i) = this->real_lp_h_lp_yz[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_zx[lp_i][pc_i](j,i) = this->real_lp_h_lp_zx[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_zy[lp_i][pc_i](j,i) = this->real_lp_h_lp_zy[lp_i][pc_i](i,j);
+			this->real_lp_h_lp_zz[lp_i][pc_i](j,i) = this->real_lp_h_lp_zz[lp_i][pc_i](i,j);
+		}
+	}
+*/
+	std::cout << std::endl;
+	std::cout << "Validation \n";
+	{
+		using std::cout, std::endl;
+
+		cout << "#XX \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_xx[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#XY \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_xy[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#XZ \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_xz[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#YX \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_yx[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#YY \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_yy[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#YZ \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_yz[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#ZX \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_zx[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#ZY \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_zy[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+		cout << "#ZZ \n";
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_zz[lp_i][pc_i](i,j)); } cout << endl; }
+		cout << endl;
+	}
 }
 
-void Manager::set_h_matrix_real_pc_derivative_z( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
-{
-	this->man_lp_matrix_h.GetTransformationMatrix(R);	// get Transformation matrix ... saved : Eigen::Matrix4d this->man_lp_matrix_h.transform_matrix;
-	Eigen::Matrix4d h_tmp;					// calculating local h_matrix WS
-	h_tmp.setZero();					// initialise
-	
-	// evalulation block
-	h_tmp(0,0) = this->man_lp_matrix_h.real_ss_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
-	h_tmp(0,3) = this->man_lp_matrix_h.real_sz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
-	h_tmp(3,0) = h_tmp(0,3);
-	h_tmp(1,1) = this->man_lp_matrix_h.real_xx_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
-	h_tmp(2,2) = h_tmp(1,1);
-	h_tmp(3,3) = this->man_lp_matrix_h.real_zz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());
-	
+/*
 	this->real_lp_h_pc_z[lp_i][pc_i] = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp * this->man_lp_matrix_h.transform_matrix;	// inverse transformation
-}
 */
 
 void Manager::InitialiseEnergy( Cell& C )
@@ -167,7 +346,9 @@ void Manager::InitialiseEnergy( Cell& C )
 	double delta = 0.005;
 	double sig =2.3231241;
 	Eigen::Vector3d v;
-	v << 1,2,-3;
+	v << 0,0,3.5;
+	//v << 0,0,4.;
+
 	Manager::set_h_matrix_real_pc( lp, v, sig, ind, 0 );
 	//cout << this->real_lp_h_pc[ind][0] << endl;
 	for(int i=0;i<4;i++)
@@ -235,11 +416,13 @@ void Manager::InitialiseEnergy( Cell& C )
 	cout << "End of H Matrix Test" << endl;
 	cout << endl;
 	
-	//Manager::set_h_matrix_real_pc_derivative_x( lp, v, sig, ind ,0 );
-	//Manager::set_h_matrix_real_pc_derivative_y( lp, v, sig, ind ,0 );
-	//Manager::set_h_matrix_real_pc_derivative_z( lp, v, sig, ind ,0 );
+
+//v << 1,2,-3;
+//v << 0,0,3;
+
+	cout << "OnSite" << endl;
 	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
-	
+
 	cout << "grad h_pc_x" << endl;
 	for(int i=0;i<4;i++)
 	{	for(int j=0;j<4;j++)
@@ -258,11 +441,216 @@ void Manager::InitialiseEnergy( Cell& C )
 			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
 		cout << endl;
 	}
+	cout << endl;
+
+	cout << "OnSite Z Forward ... " << endl;
+	v(2) = v(2) + delta;
+	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
+	v(2) = v(2) - delta;
+
+	cout << "grad h_pc_x" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_x[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_y" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_y[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_z" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
+		cout << endl;
+	}
+	cout << endl;
+
+	cout << "OnSite Z Backward ... " << endl;
+	v(2) = v(2) - delta;
+	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
+	v(2) = v(2) + delta;
+
+	cout << "grad h_pc_x" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_x[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_y" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_y[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_z" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
+		cout << endl;
+	}
+	cout << endl;
 	// FDM TEST 
 
 
-	cout << "\n\n\n";
+	cout << "\n\n\n######################";
 	cout << "PC 2nd Derivative Test" << endl;
+
+	Manager::set_h_matrix_real_pc_derivative2( lp, v, sig, ind ,0 );
+
+	cout << endl;
+	cout << endl;
+	cout << endl;
+	cout << "############################" << endl;
+	cout << "Inverse Transformation Check" << endl;
+	cout << "grad h_pc_zz" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_lp_zz[ind][0](i,j));
+		cout << endl;
+	}
+	
+	cout << endl;
+	cout << "############################" << endl;
+	cout << "Checking X" << endl;
+	
+	cout << "Vector : " << v << endl;
+	cout << endl;
+
+	cout << "OnSite X Forward ... " << endl;
+	v(0) = v(0) + delta;
+	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
+	v(0) = v(0) - delta;
+
+	cout << "grad h_pc_x" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_x[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_y" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_y[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_z" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
+		cout << endl;
+	}
+	cout << endl;
+
+	cout << "OnSite X Backward ... " << endl;
+	v(0) = v(0) - delta;
+	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
+	v(0) = v(0) + delta;
+
+	cout << "grad h_pc_x" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_x[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_y" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_y[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_z" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
+		cout << endl;
+	}
+	cout << endl;
+	// FDM TEST 
+
+	cout << endl;
+	cout << "############################" << endl;
+	cout << "Checking Y" << endl;
+	
+	cout << "Vector : " << v << endl;
+	cout << endl;
+
+	cout << "OnSite Y Forward ... " << endl;
+	v(1) = v(1) + delta;
+	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
+	v(1) = v(1) - delta;
+
+	cout << "grad h_pc_x" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_x[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_y" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_y[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_z" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
+		cout << endl;
+	}
+	cout << endl;
+
+	cout << "OnSite Y Backward ... " << endl;
+	v(1) = v(1) - delta;
+	Manager::set_h_matrix_real_pc_derivative( lp, v, sig, ind ,0 );
+	v(1) = v(1) + delta;
+
+	cout << "grad h_pc_x" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_x[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_y" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_y[ind][0](i,j));
+		cout << endl;
+	}
+	cout << "grad h_pc_z" << endl;
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+			printf("%20.12lf\t",this->real_lp_h_pc_z[ind][0](i,j));
+		cout << endl;
+	}
+	cout << endl;
+	// FDM TEST 
+
+	exit(1);
+
+/// TEST END	
+	cout << endl;
+	cout << endl;
+	cout << "# Sample Integral output .. f(d) \n";
+
+	double dist = 0.1;
+	int mx_step = 200000;
+
+	double tmp_res_ss;
+	double tmp_res_ss_zz;
+	double tmp_res_ss_z;
+	for(int i=0;i<mx_step;i++)
+	{
+		dist = dist*1.0123;
+
+		if( dist > 10. ) break;
+		tmp_res_ss    = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		tmp_res_ss_z  = this->man_lp_matrix_h.real_ss_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		tmp_res_ss_zz = this->man_lp_matrix_h.real_ss_grad2_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,dist);
+		printf("%10.6lf\t%20.12lf\t%20.12lf\t%20.12lf\n",dist,tmp_res_ss,tmp_res_ss_z,tmp_res_ss_zz);
+	}
 
 	exit(1);
 #endif

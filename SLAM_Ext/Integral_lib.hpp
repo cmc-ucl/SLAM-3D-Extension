@@ -27,6 +27,12 @@ double EnergyAngularIntegral_real_derivative_z_zz( double sig, double r, double 
  Derivative calculation is done in the same manner with the first derivatives
 
  i.e., d2f/d(rb;k)2 ... where k = x,y,z and the result is same with d2f/d(Rb;k)2 */
+
+// Correctional Terms 26 Sep 2022
+double real_derivative2_aux_grad_z_ss( double sig, double r, double d );
+double real_derivative2_aux_grad_z_sz( double sig, double r, double d );
+double real_derivative2_aux_grad_z_zz( double sig, double r, double d );
+
 double EnergyAngularIntegral_real_derivative2_xx_ss( double sig, double r, double d );
 double EnergyAngularIntegral_real_derivative2_xx_sz( double sig, double r, double d );
 double EnergyAngularIntegral_real_derivative2_xx_xx( double sig, double r, double d );
@@ -35,7 +41,7 @@ double EnergyAngularIntegral_real_derivative2_xx_zz( double sig, double r, doubl
 
 double EnergyAngularIntegral_real_derivative2_xy_xy( double sig, double r, double d );
 
-double EnergyAngularIntegral_real_derivative2_xz_sz( double sig, double r, double d );
+double EnergyAngularIntegral_real_derivative2_xz_sx( double sig, double r, double d );
 double EnergyAngularIntegral_real_derivative2_xz_xz( double sig, double r, double d );
 
 double EnergyAngularIntegral_real_derivative2_zz_ss( double sig, double r, double d );

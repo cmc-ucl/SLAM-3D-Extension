@@ -116,7 +116,7 @@ double LonePairMatrix_H::real_ss_pc( const std::vector<double>& integral_knot, c
 		dr   = integral_knot[i+1] - integral_knot[i];
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
-		
+
 		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
@@ -188,7 +188,7 @@ double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, c
 	double fa, fb, dr, mesh;
 	double r,r_inc;
 	// Distance to Bohr
-	
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		dr   = integral_knot[i+1] - integral_knot[i];
@@ -395,6 +395,10 @@ double LonePairMatrix_H::real_ss_grad2_xx_pc( const std::vector<double>& integra
 			res += r_inc*(fa+fb)/2.;
 		}
 	}
+
+	// Discontinuous Aux Correction
+	//res += radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*real_derivative2_aux_x(sig,d,d);
+
 	// eV Unit
 	return res;
 }
@@ -421,6 +425,10 @@ double LonePairMatrix_H::real_sz_grad2_xx_pc( const std::vector<double>& integra
 			res += r_inc*(fa+fb)/2.;
 		}
 	}
+
+	// Discontinuous Aux Correction
+	//res += radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*real_derivative2_aux_x(sig,d,d);
+
 	// eV Unit
 	return res;
 }
@@ -529,7 +537,9 @@ double LonePairMatrix_H::real_xy_grad2_xy_pc( const std::vector<double>& integra
 	return res;
 }
 
-double LonePairMatrix_H::real_sz_grad2_xz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
+////	Derivative XZ
+
+double LonePairMatrix_H::real_sx_grad2_xz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
@@ -545,9 +555,9 @@ double LonePairMatrix_H::real_sz_grad2_xz_pc( const std::vector<double>& integra
 		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
-			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_xz_sz(sig,r,d);
+			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_xz_sx(sig,r,d);
 			r  = integral_knot[i] + (k+1) * r_inc;
-			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_xz_sz(sig,r,d);
+			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_xz_sx(sig,r,d);
 			res += r_inc*(fa+fb)/2.;
 		}
 	}
@@ -581,6 +591,8 @@ double LonePairMatrix_H::real_xz_grad2_xz_pc( const std::vector<double>& integra
 	return res;
 }
 
+////	Derivative ZZ
+
 double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
@@ -593,7 +605,7 @@ double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integra
 		dr   = integral_knot[i+1] - integral_knot[i];
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
-		
+
 		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
@@ -602,10 +614,17 @@ double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integra
 			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_ss(sig,r,d);
 			res += r_inc*(fa+fb)/2.;
 		}
+
+		if( integral_knot[i] < d && d < integral_knot[i+1] )
+		{	// Discontinuous Correction .... ss_grad_z ... discontinuous
+			res += radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*real_derivative2_aux_grad_z_ss(sig,d,d);
+		}
 	}
+
 	// eV Unit
 	return res;
 }
+
 
 double LonePairMatrix_H::real_sz_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
@@ -628,7 +647,13 @@ double LonePairMatrix_H::real_sz_grad2_zz_pc( const std::vector<double>& integra
 			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_sz(sig,r,d);
 			res += r_inc*(fa+fb)/2.;
 		}
+		
+		if( integral_knot[i] < d && d < integral_knot[i+1] )
+		{	// Discontinuous Correction .... ss_grad_z ... discontinuous
+			res += radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],d)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*real_derivative2_aux_grad_z_sz(sig,d,d);
+		}
 	}
+
 	// eV Unit
 	return res;
 }
@@ -654,6 +679,8 @@ double LonePairMatrix_H::real_xx_grad2_zz_pc( const std::vector<double>& integra
 			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_xx(sig,r,d);
 			res += r_inc*(fa+fb)/2.;
 		}
+
+		// 
 	}
 	// eV Unit
 	return res;
@@ -666,6 +693,10 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 	double r,r_inc;
 	// Distance to Bohr
 	
+// Debugging Purpose
+
+
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		dr   = integral_knot[i+1] - integral_knot[i];
@@ -680,6 +711,11 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_zz(sig,r,d);
 			res += r_inc*(fa+fb)/2.;
 		}
+
+		if( integral_knot[i] < d && d < integral_knot[i+1] )
+		{	// Discontinuous Correction .... ss_grad_z ... discontinuous
+			res += radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*real_derivative2_aux_grad_z_zz(sig,d,d);
+		}
 	}
 	// eV Unit
 	return res;
@@ -690,12 +726,12 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 
 
 
-
-
-
-
-
-
+//// DEV_TEST //// DEV_TEST
+//// DEV_TEST //// DEV_TEST
+//// DEV_TEST //// DEV_TEST
+//// DEV_TEST //// DEV_TEST
+//// DEV_TEST //// DEV_TEST
+//// DEV_TEST //// DEV_TEST
 
 void LonePairMatrix_H::test2()			// binary link test
 {	std::cout << "LP mat Test 2\n";
