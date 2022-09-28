@@ -692,31 +692,100 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 	double fa, fb, dr, mesh;
 	double r,r_inc;
 	// Distance to Bohr
+
+	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );
+	printf(" BSearch : %d ... %lf ~ %lf\n",knot_d,integral_knot[knot_d],integral_knot[knot_d+1]);
 	
 // Debugging Purpose
-
-
+using std::cout, std::endl;
+double db_res = 0.;
+double db_aux = 0.;
+int db_id;
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		dr   = integral_knot[i+1] - integral_knot[i];
-		mesh = grid(dr);
-		r_inc= dr/static_cast<double>(mesh);
-		
-		for(int k=0;k<mesh;k++)
+		if( i != knot_d )
 		{
-			r  = integral_knot[i] + k * r_inc;
-			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_zz(sig,r,d);
-			r  = integral_knot[i] + (k+1) * r_inc;
-			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_zz(sig,r,d);
-			res += r_inc*(fa+fb)/2.;
-		}
+			dr   = integral_knot[i+1] - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
+		
+			for(int k=0;k<mesh;k++)
+			{
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_zz(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative2_zz_zz(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 
-		if( integral_knot[i] < d && d < integral_knot[i+1] )
-		{	// Discontinuous Correction .... ss_grad_z ... discontinuous
+				db_res += r_inc*(fb+fb)/2.;	// !!!
+			}
+		/*
+			if( integral_knot[i] < d && d < integral_knot[i+1] )
+			{	// Discontinuous Correction .... ss_grad_z ... discontinuous
+				res += radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*real_derivative2_aux_grad_z_zz(sig,d,d);
+
+				db_id = i;	//
+				db_aux = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*real_derivative2_aux_grad_z_zz(sig,d,d);	//
+			}
+		*/
+		}
+		else
+		{	
+			cout << "ElseElseElse ... " << i << endl;
+			// Case Left
+			dr   = d - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
+
+			for(int k=0;k<mesh;k++)
+			{
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*real_derivative2_aux_grad_z_zz_left(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*real_derivative2_aux_grad_z_zz_left(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
+
+				db_res += r_inc*(fb+fb)/2.;	// !!!
+
+				if( k == mesh-1 )
+					printf("Val1 : %20.12lf\n",real_derivative2_aux_grad_z_zz_left(sig,r,d));
+			}
+			
+			cout << "Case RightRightRight ... \n";
+			// Case Right
+			dr   = integral_knot[i+1] - d;
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
+
+			for(int k=0;k<mesh;k++)
+			{
+				//r  = integral_knot[i] + k * r_inc;
+				r  = d + k * r_inc;
+				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*real_derivative2_aux_grad_z_zz_right(sig,r,d);
+				r  = d + (k+1) * r_inc;
+				fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*real_derivative2_aux_grad_z_zz_right(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
+
+				db_res += r_inc*(fb+fb)/2.;	// !!!
+
+				if( k == 0 )
+					printf("Val2 : %20.12lf\n",real_derivative2_aux_grad_z_zz_right(sig,r,d));
+			}
+
+
+			// Discontinuous Point AUx
 			res += radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*real_derivative2_aux_grad_z_zz(sig,d,d);
+
+			db_id = i;	//
+			db_aux = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],d)*real_derivative2_aux_grad_z_zz(sig,d,d);	//
 		}
 	}
+
+cout << "d2_zz_zz DEBUGGING######################" << endl;
+printf("dist/sig        : %18.12lf\t%18.12lf\n",d,sig);
+printf("radial coeffici : %18.12lf\t%18.12lf\t%18.12lf\t%18.12lf\n",Rp[0][db_id],Rp[1][db_id],Rp[2][db_id],Rp[3][db_id]);
+printf("res/aux/res+aux : %18.12lf\t%18.12lf\t%18.12lf\n",db_res,db_aux,db_res+db_aux);
 	// eV Unit
 	return res;
 }

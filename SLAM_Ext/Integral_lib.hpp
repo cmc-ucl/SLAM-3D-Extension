@@ -33,6 +33,13 @@ double real_derivative2_aux_grad_z_ss( double sig, double r, double d );
 double real_derivative2_aux_grad_z_sz( double sig, double r, double d );
 double real_derivative2_aux_grad_z_zz( double sig, double r, double d );
 
+double real_derivative2_aux_grad_z_ss_left( double sig, double r, double d );
+double real_derivative2_aux_grad_z_ss_right( double sig, double r, double d );
+double real_derivative2_aux_grad_z_sz_left( double sig, double r, double d );
+double real_derivative2_aux_grad_z_sz_right( double sig, double r, double d );
+double real_derivative2_aux_grad_z_zz_left( double sig, double r, double d );
+double real_derivative2_aux_grad_z_zz_right( double sig, double r, double d );
+
 double EnergyAngularIntegral_real_derivative2_xx_ss( double sig, double r, double d );
 double EnergyAngularIntegral_real_derivative2_xx_sz( double sig, double r, double d );
 double EnergyAngularIntegral_real_derivative2_xx_xx( double sig, double r, double d );
