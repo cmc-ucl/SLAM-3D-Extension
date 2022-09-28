@@ -346,7 +346,7 @@ void Manager::InitialiseEnergy( Cell& C )
 	double delta = 0.005;
 	double sig =2.3231241;
 	Eigen::Vector3d v;
-	v << 0,0,3.5;
+	v << 1,0.5,1;
 	//v << 0,0,4.;
 
 	Manager::set_h_matrix_real_pc( lp, v, sig, ind, 0 );

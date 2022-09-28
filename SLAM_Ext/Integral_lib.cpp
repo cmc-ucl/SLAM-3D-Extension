@@ -124,22 +124,33 @@ double EnergyAngularIntegral_real_derivative_x_xz( double sig, double r, double 
 
 double EnergyAngularIntegral_real_derivative_z_ss( double sig, double r, double d )
 {
-	return -0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/pow(M_E,pow(d + r,2)/pow(sig,2)) + 
-	sqrt(M_PI)*r*erfc((d + r)/sig) + (sqrt(M_PI)*(d - r)*r*erfc(fabs(d - r)/sig))/fabs(d - r))/
-	(pow(d,2)*sqrt(M_PI)*r);
+	return -0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*r*erfc((d + r)/sig) + (sqrt(M_PI)*(d - r)*r*erfc(fabs(d - r)/sig))/fabs(d - r))/(pow(d,2)*sqrt(M_PI)*r);
+}
+double EnergyAngularIntegral_real_derivative_z_ss_left( double sig, double r, double d )
+{
+	return -0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*r*erfc((d + r)/sig) + sqrt(M_PI)*r*erfc(fabs(d - r)/sig))/(pow(d,2)*sqrt(M_PI)*r);
+}
+double EnergyAngularIntegral_real_derivative_z_ss_right( double sig, double r, double d )
+{
+	return -0.5*(((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*sig)/pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*r*erfc((d + r)/sig) - sqrt(M_PI)*r*erfc(fabs(d - r)/sig))/(pow(d,2)*sqrt(M_PI)*r);
 }
 
 // derivative z - sz           ... usage : point charge derivative / lplp energy interaction
 
 double EnergyAngularIntegral_real_derivative_z_sz( double sig, double r, double d )
 {
-	return ((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 
-	2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - 
-	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
-	pow(M_E,pow(d + r,2)/pow(sig,2)) + 
-	sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) - 
-	(sqrt(M_PI)*(pow(d,4) - pow(d,3)*r + 2*d*pow(r,3) - 2*pow(r,4))*erfc(fabs(d - r)/sig))/
-	fabs(d - r))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2));
+	return ((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) - (sqrt(M_PI)*(pow(d,4) - pow(d,3)*r + 2*d*pow(r,3) - 2*pow(r,4))*erfc(fabs(d - r)/sig))/fabs(d - r))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2));
+}
+double EnergyAngularIntegral_real_derivative_z_sz_left( double sig, double r, double d )
+{
+	return ((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) - sqrt(M_PI)*(pow(d,3) + 2*pow(r,3))*erfc(fabs(d - r)/sig))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2));
+}
+double EnergyAngularIntegral_real_derivative_z_sz_right( double sig, double r, double d )
+{
+	return ((sig*(pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - (-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(2*pow(r,2) - pow(sig,2))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) + sqrt(M_PI)*(pow(d,3) - 2*pow(r,3))*erfc((d + r)/sig) + sqrt(M_PI)*(pow(d,3) + 2*pow(r,3))*erfc(fabs(d - r)/sig))/(2.*pow(d,3)*sqrt(3*M_PI)*pow(r,2));
 }
 
 // derivative z - xx = yy      ... usage : point charge derivative / lplp energy interaction
@@ -174,6 +185,20 @@ double EnergyAngularIntegral_real_derivative_z_zz( double sig, double r, double 
 	(2*sqrt(M_PI)*(4*pow(d,6) - 4*pow(d,5)*r + 5*pow(d,3)*pow(r,3) - 
 	5*pow(d,2)*pow(r,4) + 6*d*pow(r,5) - 6*pow(r,6))*erfc(fabs(d - r)/sig))/
 	fabs(d - r))/(pow(d,4)*sqrt(M_PI)*pow(r,3));
+}
+double EnergyAngularIntegral_real_derivative_z_zz_left( double sig, double r, double d )	// 'r' approaches from the left  ... r < d
+{
+	return -0.05*((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(11*pow(r,2) + 2*pow(sig,2)) + 3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) - 6*pow(r,5))*erfc((d + r)/sig) + 
+	2*sqrt(M_PI)*(4*pow(d,5) + 5*pow(d,2)*pow(r,3) + 6*pow(r,5))*erfc(fabs(d - r)/sig))/(pow(d,4)*sqrt(M_PI)*pow(r,3));
+}
+double EnergyAngularIntegral_real_derivative_z_zz_right( double sig, double r, double d )	// 'r' approaches from the right ... d < r
+{
+	return -0.05*((sig*(-8*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2))) - 8*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r + 6*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*(2*pow(r,2) - 3*pow(sig,2)) + 
+	2*pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(11*pow(r,2) + 2*pow(sig,2)) + 3*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4))))/
+	pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) - 6*pow(r,5))*erfc((d + r)/sig) - 
+	2*sqrt(M_PI)*(4*pow(d,5) + 5*pow(d,2)*pow(r,3) + 6*pow(r,5))*erfc(fabs(d - r)/sig))/(pow(d,4)*sqrt(M_PI)*pow(r,3));
 }
 
 ////	////	////	////	////	////
@@ -279,13 +304,22 @@ double EnergyAngularIntegral_real_derivative2_xz_xz( double sig, double r, doubl
 	(2*sqrt(M_PI)*pow(d - r,3)*(pow(d,5) + 4*pow(r,5))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(20.*pow(d,5)*sqrt(M_PI)*pow(r,3));
 }
 
+// ZZ - SS
 
 double EnergyAngularIntegral_real_derivative2_zz_ss( double sig, double r, double d )
 {
-	return (((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(d,2) + pow(sig,2)))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*r*sig) + erfc((d + r)/sig) + 
-	(pow(d - r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/pow(d,3);
+	return (((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(d,2) + pow(sig,2)))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*r*sig) + erfc((d + r)/sig) + (pow(d - r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/pow(d,3);
+}
+double EnergyAngularIntegral_real_derivative2_zz_ss_left( double sig, double r, double d )
+{
+	return (((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(d,2) + pow(sig,2)))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*r*sig) + erfc((d + r)/sig) + erfc(fabs(d - r)/sig))/pow(d,3);
+}
+double EnergyAngularIntegral_real_derivative2_zz_ss_right( double sig, double r, double d )
+{
+	return (((-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(pow(d,2) + pow(sig,2)))/(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*r*sig) + erfc((d + r)/sig) - erfc(fabs(d - r)/sig))/pow(d,3);
 }
 
+// ZZ - SZ
 
 double EnergyAngularIntegral_real_derivative2_zz_sz( double sig, double r, double d )
 {
@@ -293,7 +327,20 @@ double EnergyAngularIntegral_real_derivative2_zz_sz( double sig, double r, doubl
 	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(2*pow(r,2) - pow(sig,2)) + 2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*pow(r,3)*sig*erfc((d + r)/sig))/
 	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*sig) + (2*pow(d - r,3)*pow(r,3)*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3)))/(2.*pow(d,4)*pow(r,2));
 }
+double EnergyAngularIntegral_real_derivative2_zz_sz_left( double sig, double r, double d )
+{
+	return (sqrt(3)*((2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2) + 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2) + 
+	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(2*pow(r,2) - pow(sig,2)) + 2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*pow(r,3)*sig*erfc((d + r)/sig))/
+	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*sig) + 2*pow(r,3)*erfc(fabs(d - r)/sig)))/(2.*pow(d,4)*pow(r,2));
+}
+double EnergyAngularIntegral_real_derivative2_zz_sz_right( double sig, double r, double d )
+{
+	return (sqrt(3)*((2*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r - pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2) + 2*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2) + 
+	(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(2*pow(r,2) - pow(sig,2)) + 2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*pow(r,3)*sig*erfc((d + r)/sig))/
+	(pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*sig) - 2*pow(r,3)*erfc(fabs(d - r)/sig)))/(2.*pow(d,4)*pow(r,2));
+}
 
+// ZZ - XX = YY
 
 double EnergyAngularIntegral_real_derivative2_zz_xx( double sig, double r, double d )
 {
@@ -303,6 +350,7 @@ double EnergyAngularIntegral_real_derivative2_zz_xx( double sig, double r, doubl
 	(4*sqrt(M_PI)*pow(d - r,4)*(pow(d,4) + pow(d,3)*r + pow(d,2)*pow(r,2) + 6*d*pow(r,3) + 6*pow(r,4))*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/(pow(d,5)*sqrt(M_PI)*pow(r,3));
 }
 
+// ZZ - ZZ
 
 double EnergyAngularIntegral_real_derivative2_zz_zz( double sig, double r, double d )
 {
@@ -311,20 +359,21 @@ double EnergyAngularIntegral_real_derivative2_zz_zz( double sig, double r, doubl
 	6*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4)) + 
 	2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*sig*erfc((d + r)/sig))/pow(M_E,pow(d + r,2)/pow(sig,2)) - 
 	(2*sqrt(M_PI)*pow(d - r,3)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3) - 12*pow(r,5))*sig*erfc(fabs(d - r)/sig))/pow(fabs(d - r),3))/(10.*pow(d,5)*sqrt(M_PI)*pow(r,3)*sig);
+
 }
-double real_derivative2_aux_grad_z_zz_left( double sig, double r, double d )	// 'r' approaches from the left ... r < d
+double EnergyAngularIntegral_real_derivative2_zz_zz_left( double sig, double r, double d )	// 'r' approaches from the left ... r < d
 {
 	return ((-26*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2) + 12*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2)*(2*pow(r,2) - 3*pow(sig,2)) + 2*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,2) + 2*pow(sig,2)) + 
 	pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(34*pow(r,2) + 13*pow(sig,2)) + 6*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4)) + 
-	2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*sig*erfc((d + r)/sig))/pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3)
-	- 12*pow(r,5))*sig*erfc(fabs(d - r)/sig))/(10.*pow(d,5)*sqrt(M_PI)*pow(r,3)*sig);
+	2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*sig*erfc((d + r)/sig))/pow(M_E,pow(d + r,2)/pow(sig,2))
+	- 2*sqrt(M_PI)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3) - 12*pow(r,5))*sig*erfc(fabs(d - r)/sig))/(10.*pow(d,5)*sqrt(M_PI)*pow(r,3)*sig);
 }
-double real_derivative2_aux_grad_z_zz_right( double sig, double r, double d )	// 'r' approaches from the right ... d < r
+double EnergyAngularIntegral_real_derivative2_zz_zz_right( double sig, double r, double d )	// 'r' approaches from the right ... d < r
 {
 	return ((-26*pow(d,3)*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2) + 12*d*(1 + pow(M_E,(4*d*r)/pow(sig,2)))*r*pow(sig,2)*(2*pow(r,2) - 3*pow(sig,2)) + 2*pow(d,4)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*(15*pow(r,2) + 2*pow(sig,2)) + 
 	pow(d,2)*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(34*pow(r,2) + 13*pow(sig,2)) + 6*(-1 + pow(M_E,(4*d*r)/pow(sig,2)))*pow(sig,2)*(4*pow(r,4) - 2*pow(r,2)*pow(sig,2) + 3*pow(sig,4)) + 
-	2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*sig*erfc((d + r)/sig))/pow(M_E,pow(d + r,2)/pow(sig,2)) + 2*sqrt(M_PI)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3)
-	- 12*pow(r,5))*sig*erfc(fabs(d - r)/sig))/(10.*pow(d,5)*sqrt(M_PI)*pow(r,3)*sig);
+	2*pow(M_E,pow(d + r,2)/pow(sig,2))*sqrt(M_PI)*(2*pow(d,5) + 5*pow(d,2)*pow(r,3) + 12*pow(r,5))*sig*erfc((d + r)/sig))/pow(M_E,pow(d + r,2)/pow(sig,2))
+	+ 2*sqrt(M_PI)*(2*pow(d,5) - 5*pow(d,2)*pow(r,3) - 12*pow(r,5))*sig*erfc(fabs(d - r)/sig))/(10.*pow(d,5)*sqrt(M_PI)*pow(r,3)*sig);
 }
 
 
