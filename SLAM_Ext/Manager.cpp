@@ -344,10 +344,15 @@ void Manager::InitialiseEnergy( Cell& C )
 		}
 	}
 	double delta = 0.005;
-	double sig =2.3231241;
+	//double sig =2.3231241;
+	double sig =1.8231241;
 	Eigen::Vector3d v;
-	v << 1,0.5,1;
+	v << 2.2,-0.23,-2.5;
 	//v << 0,0,4.;
+	printf("TestPointCharg%20.12lf\t%20.12lf\t%20.12lf\n",v(0),v(1),v(2));
+	printf("Sigma\t%20.12lf\n",sig);
+	printf("displs\t%20.12lf\n",delta);
+
 
 	Manager::set_h_matrix_real_pc( lp, v, sig, ind, 0 );
 	//cout << this->real_lp_h_pc[ind][0] << endl;
