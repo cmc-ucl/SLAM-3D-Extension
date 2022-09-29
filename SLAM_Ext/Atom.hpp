@@ -185,6 +185,7 @@ class LonePair : public Atom
 
 friend class Cell;				// Allowing access previlege to 'Cell' class, i.e., Cell can access privates of Atom
 friend class Manager;
+//friend class LonePairMatrix_H;
 
 private:
 
@@ -206,6 +207,8 @@ private:
 	std::vector<double> lp_r;
 	std::vector<double> lp_r_s_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
 	std::vector<double> lp_r_p_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
+							// Convention ... for a range with knots : lp_r[i] ~ lp_r[i+1]
+							// a,b,c,d : ..[0-3][i]
 
 public:
 		
