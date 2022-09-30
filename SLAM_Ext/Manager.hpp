@@ -91,12 +91,14 @@ void GetLonePairGroundState( Cell& C );
 /* Return Transformation Matrix - Transformation Matrix (T) rotates global symmetry to local, e.g., Hij = Tai Tbj Hab'	- inverse transform of H' (local) matrix */
 //const Eigen::Matrix4d& LonePairGetTransformationMatrix( Eigen::Matrix4d& transform_matrix /*in/out*/, const Eigen::Vector3d cart_i, const Eigen::Vector3d cart_j );
 
-// Setting LP H matrices
+// RealSpace - Setting LP H Matrices
 const Eigen::Matrix4d& set_h_matrix_real_pc( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 void set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 void set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
-
-//
+// ReciSpace - Setting LP H Matrices
+const Eigen::Matrix4d& set_h_matrix_reci_pc( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
+void set_h_matrix_reci_pc_derivative( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
+void set_h_matrix_reci_pc_derivative2( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 
 // Interaction - Lone Pair
 void CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );	// scf flag for calculating 

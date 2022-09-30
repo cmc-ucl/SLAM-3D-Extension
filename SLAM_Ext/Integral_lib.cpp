@@ -235,6 +235,7 @@ double real_derivative2_aux_grad_z_zz( double sig, double r, double d )
 	pow(M_E,pow(d + r,2)/pow(sig,2)) - 2*sqrt(M_PI)*(4*pow(d,5) - 5*pow(d,2)*pow(r,3) - 6*pow(r,5))*erfc((d + r)/sig) - 
 	2*sqrt(M_PI)*(4*pow(d,5) + 5*pow(d,2)*pow(r,3) + 6*pow(r,5))*erfc(fabs(d - r)/sig))/(pow(d,4)*sqrt(M_PI)*pow(r,3))));
 }
+
 //// Integral Functions
 
 double EnergyAngularIntegral_real_derivative2_xx_ss( double sig, double r, double d )
@@ -384,19 +385,106 @@ double EnergyAngularIntegral_real_derivative2_zz_zz_right( double sig, double r,
 ////	////	////	////	////	////
 
 double EnergyAngularIntegral_reci_ss( const double r, const double g )
-{
-return sin(g*r)/g/r;
+{	return sin(g*r)/g/r;
 }
 
 double EnergyAngularIntegral_reci_xx( const double r, const double g )
-{
-return 3.*(-g*r*cos(g*r)+sin(g*r))/g/g/g/r/r/r;
+{	return 3.*(-g*r*cos(g*r)+sin(g*r))/g/g/g/r/r/r;
 }
 
 double EnergyAngularIntegral_reci_zz( const double r, const double g )
-{
-return 3.*(2.*g*r*cos(g*r)+(-2.+g*g*r*r)*sin(g*r))/g/g/g/r/r/r;
+{	return 3.*(2.*g*r*cos(g*r)+(-2.+g*g*r*r)*sin(g*r))/g/g/g/r/r/r;
 }
+
+////	////	////	////	////	////
+
+// Energy ReciSpace Derivative 'gx, gy, gz'
+
+////	////	////	////	////	////
+
+/// w.r.t 'gx'
+
+double EnergyAngularIntegral_reci_derivative_x_xz( const double r, const double g )
+{	return  (3*(3*g*r*cos(g*r) + (-3 + pow(g,2)*pow(r,2))*sin(g*r)))/(pow(g,4)*pow(r,3));
+}
+
+/// w.r.t 'gz'
+
+double EnergyAngularIntegral_reci_derivative_z_ss( const double r, const double g )
+{	return (g*r*cos(g*r) - sin(g*r))/(pow(g,2)*r);
+}
+double EnergyAngularIntegral_reci_derivative_z_xx( const double r, const double g )
+{	return (3*(3*g*r*cos(g*r) + (-3 + pow(g,2)*pow(r,2))*sin(g*r)))/(pow(g,4)*pow(r,3));
+}
+double EnergyAngularIntegral_reci_derivative_z_zz( const double r, const double g )
+{	return (3*g*r*(-6 + pow(g,2)*pow(r,2))*cos(g*r) - 9*(-2 + pow(g,2)*pow(r,2))*sin(g*r))/(pow(g,4)*pow(r,3));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 
