@@ -180,6 +180,67 @@ void Manager::set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vecto
 #endif
 }
 
+const Eigen::Matrix4d& Manager::set_h_matrix_reci_pc( /* IN/RES OUT */ LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i )
+{
+	this->man_lp_matrix_h.GetTransformationMatrix(G);	// get Transformation matrix ... saved : Eigen::Matrix4d this->man_lp_matrix_h.transform_matrix;
+	Eigen::Matrix4d h_tmp;					// calculating local h_matrix WS
+	h_tmp.setZero();					// initialise
+
+	// evalulation block
+	h_tmp(0,0) = this->man_lp_matrix_h.reci_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+	h_tmp(1,1) = this->man_lp_matrix_h.reci_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+	h_tmp(2,2) = h_tmp(1,1);
+	h_tmp(3,3) = this->man_lp_matrix_h.reci_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+
+	this->reci_lp_h_pc[lp_i][pc_i] = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp * this->man_lp_matrix_h.transform_matrix;	// inverse transformation
+
+	return this->reci_lp_h_pc[lp_i][pc_i];
+}
+
+
+void Manager::set_h_matrix_reci_pc_derivative( /* IN/RES OUT */ LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i )
+{
+	this->man_lp_matrix_h.GetTransformationMatrix(G);	// get Transformation matrix ... saved : Eigen::Matrix4d this->man_lp_matrix_h.transform_matrix;
+	Eigen::Matrix4d h_tmp_x, h_tmp_y, h_tmp_z;		// calculating local h_matrix WS
+	Eigen::Matrix4d h_tmp_x_ws,h_tmp_y_ws,h_tmp_z_ws;
+	Eigen::Vector3d v_loc, v_glo;
+
+	h_tmp_x.setZero();					// initialise
+	h_tmp_y.setZero();					// initialise
+	h_tmp_z.setZero();					// initialise
+	h_tmp_x_ws.setZero();					// initialise
+	h_tmp_y_ws.setZero();					// initialise
+	h_tmp_z_ws.setZero();					// initialise
+	
+	// 1. Compute first derivative integrals in a local symmetry
+	h_tmp_x(1,3) = this->man_lp_matrix_h.reci_xz_grad_gx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+	h_tmp_x(3,1) = h_tmp_x(1,3);
+
+	h_tmp_y(2,3) = h_tmp_y(3,2) = h_tmp_x(1,3);	// y-yz = x-sz
+	
+	h_tmp_z(0,0) = this->man_lp_matrix_h.reci_ss_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+	h_tmp_z(1,1) = this->man_lp_matrix_h.reci_xx_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+	h_tmp_z(2,2) = h_tmp_z(1,1);
+	h_tmp_z(3,3) = this->man_lp_matrix_h.reci_zz_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,G.norm());
+
+	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
+	// note : h_tmp_*_ws are in the local reference frame, their x'/y'/z' element (local) has to be inversed to x/y/z (global) 
+	h_tmp_x_ws = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_x * this->man_lp_matrix_h.transform_matrix;
+	h_tmp_y_ws = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_y * this->man_lp_matrix_h.transform_matrix;
+	h_tmp_z_ws = this->man_lp_matrix_h.transform_matrix.transpose() * h_tmp_z * this->man_lp_matrix_h.transform_matrix;
+
+	// 3. Transform back to the global reference frame
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	v_loc << h_tmp_x_ws(i,j), h_tmp_y_ws(i,j), h_tmp_z_ws(i,j);
+			v_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * v_loc;
+			this->reci_lp_h_pc_x[lp_i][pc_i](i,j) =  v_glo(0);
+			this->reci_lp_h_pc_y[lp_i][pc_i](i,j) =  v_glo(1);
+			this->reci_lp_h_pc_z[lp_i][pc_i](i,j) =  v_glo(2);
+		}
+	}
+}
+
 void Manager::InitialiseEnergy( Cell& C )
 {
 
@@ -190,8 +251,8 @@ LonePair* lp = nullptr;
 int lp_id;
 
 // FDM CHECK VARS
-const double delta = 0.005;
-const double sig   = 1.85;
+double delta = 0.005;
+double sig   = 1.85;
 Eigen::Vector3d v;
 
 for(int i=0;i<C.NumberOfAtoms;i++)
@@ -213,7 +274,137 @@ v << 1,2,3;
 //cout << "Elapsed time (s) : lp - lp interaction" << endl;
 //cout << time_s << " (s)" << endl;
 
+double g = 0.05;
 
+cout << "G Vector" << endl;
+//h_tmp_d2[0][2](0,1) = this->man_lp_matrix_h.real_sx_grad2_xz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][2] - XZ, (0,1) sx
+
+double ss,xx,zz;
+double x_xz;
+double z_ss,z_xx,z_zz;
+/*
+for(int i=0;i<1000;i++)
+{
+	g = g*1.0123;
+
+	ss = this->man_lp_matrix_h.reci_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+	xx = this->man_lp_matrix_h.reci_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+	zz = this->man_lp_matrix_h.reci_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+	x_xz = this->man_lp_matrix_h.reci_xz_grad_gx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+	z_ss = this->man_lp_matrix_h.reci_ss_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+	z_xx = this->man_lp_matrix_h.reci_xx_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+	z_zz = this->man_lp_matrix_h.reci_zz_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+
+
+	printf("%12.8e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\n",
+		g,ss,xx,zz,z_ss,z_xx,z_zz,x_xz);
+	
+	if( g > 15. )
+		break;
+}
+*/
+
+
+cout << "G FDM CHECK" << endl;
+double ss_f,xx_f,zz_f;
+double ss_b,xx_b,zz_b;
+g = 25.124;
+delta = 0.0001;
+cout << "FDM Z Forward" << endl;
+g = g + delta;
+ss_f = this->man_lp_matrix_h.reci_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+xx_f = this->man_lp_matrix_h.reci_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+zz_f = this->man_lp_matrix_h.reci_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+printf("%20.12e\t%20.12e\t%20.12e\n",ss_f,xx_f,zz_f);
+g = g - delta;
+cout << "FDM Z Backward" << endl;
+g = g - delta;
+ss_b = this->man_lp_matrix_h.reci_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+xx_b = this->man_lp_matrix_h.reci_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+zz_b = this->man_lp_matrix_h.reci_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+printf("%20.12e\t%20.12e\t%20.12e\n",ss_b,xx_b,zz_b);
+g = g + delta;
+cout << "FDM Onsite" << endl;
+z_ss = this->man_lp_matrix_h.reci_ss_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+z_xx = this->man_lp_matrix_h.reci_xx_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+z_zz = this->man_lp_matrix_h.reci_zz_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+printf("%20.12e\t%20.12e\t%20.12e\n",z_ss,z_xx,z_zz);
+printf("%20.12e\t%20.12e\t%20.12e\n",(ss_f-ss_b)/2./delta,(xx_f-xx_b)/2./delta,(zz_f-zz_b)/2./delta);
+
+cout << endl;
+cout << "Transformation Check" << endl;
+Eigen::Vector3d G;
+G << -1.14,0.44,0.3;
+cout << endl;
+cout << "H Onsite" << endl;
+this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",this->reci_lp_h_pc[lp_id][0](i,j)); } cout << endl;}
+cout << "dH Onsite" << endl;
+this->set_h_matrix_reci_pc_derivative(lp,G,lp_id,0);
+cout << "d/dgx" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",this->reci_lp_h_pc_x[lp_id][0](i,j)); } cout << endl;}
+cout << "d/dgy" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",this->reci_lp_h_pc_y[lp_id][0](i,j)); } cout << endl;}
+cout << "d/dgz" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",this->reci_lp_h_pc_z[lp_id][0](i,j)); } cout << endl;}
+
+cout << "Initiate FDM G" << endl;
+Eigen::Matrix4d gx,gy,gz;
+gx.setZero();
+gy.setZero();
+gz.setZero();
+
+// X
+cout << "FDM gx" << endl;
+G(0) = G(0) + delta;
+gx = this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+G(0) = G(0) - delta;
+G(0) = G(0) - delta;
+gx = gx - this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+G(0) = G(0) + delta;
+gx = gx/2./delta;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",gx(i,j)); } cout << endl;}
+// Y
+cout << "FDM gy" << endl;
+G(1) = G(1) + delta;
+gy = this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+G(1) = G(1) - delta;
+G(1) = G(1) - delta;
+gy = gy - this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+G(1) = G(1) + delta;
+gy = gy/2./delta;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",gy(i,j)); } cout << endl;}
+// Z
+cout << "FDM gz" << endl;
+G(2) = G(2) + delta;
+gz = this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+G(2) = G(2) - delta;
+G(2) = G(2) - delta;
+gz = gz - this->set_h_matrix_reci_pc(lp,G,lp_id,0);
+G(2) = G(2) + delta;
+gz = gz/2./delta;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",gz(i,j)); } cout << endl;}
+
+
+
+cout << endl;
+cout << "PosIntegral test" << endl;
+double posint;
+posint = this->man_lp_matrix_h.real_position_integral(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function);
+printf("PosIntegral : %20.12lf\n",posint);
+
+double lp_self_ss;
+double lp_self_xx;
+double lp_self_grad;
+
+sig = 1.3214;
+
+lp_self_ss = this->man_lp_matrix_h.reci_self_integral_ss(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig);
+lp_self_xx = this->man_lp_matrix_h.reci_self_integral_xx(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig);
+lp_self_grad = this->man_lp_matrix_h.reci_self_integral_sx_grad_x(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig);
+
+cout << "lp_self ss / xx / lp_self_grad " << endl;
+printf("%18.12lf\t%18.12lf\t%18.12lf\n",lp_self_ss,lp_self_xx,lp_self_grad);
 
 cout << "### Terminating G-Space Recipe Dev" << endl;
 exit(1);

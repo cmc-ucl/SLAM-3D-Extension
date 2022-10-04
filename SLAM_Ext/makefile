@@ -7,9 +7,9 @@ CC=/usr/local/Cellar/gcc/12.2.0/bin/g++-12 -std=c++20 -I/usr/local/Cellar/eigen/
 GSL_I=-I/usr/local/include/
 GSL_L=-L/usr/local/lib/ -lgsl
 
-run : test_main.o Cell.o Manager.o Atom.hpp LonePairMatrix.o Integral_lib.o
-	#$(CC) -O3 -o run test_main.o Cell.o Manager.o LonePairMatrix.o Integral_lib.o $(GSL_L) 	// MacBookAir
-	$(CC) -O3 -o run test_main.o Cell.o Manager.o LonePairMatrix.o Integral_lib.o 				# iMac
+slam_ext.x : test_main.o Cell.o Manager.o Atom.hpp LonePairMatrix.o Integral_lib.o
+	#$(CC) -O3 -o slam_ext.x test_main.o Cell.o Manager.o LonePairMatrix.o Integral_lib.o $(GSL_L) 	// MacBookAir
+	$(CC) -O3 -o slam_ext.x test_main.o Cell.o Manager.o LonePairMatrix.o Integral_lib.o 				# iMac
 
 Cell.o : Cell.cpp Cell.hpp Atom.hpp Manager.hpp
 	$(CC) -c Cell.cpp
@@ -20,7 +20,7 @@ Manager.o : Manager.cpp Manager.hpp
 test_main.o : test_main.cpp
 	$(CC) -c test_main.cpp
 
-LonePairMatrix.o : LonePairMatrix.cpp LonePairMatrix.hpp
+LonePairMatrix.o : LonePairMatrix.cpp LonePairMatrix.hpp Integral_lib.hpp
 	$(CC) -O3 -c LonePairMatrix.cpp 
 
 Integral_lib.o : Integral_lib.cpp Integral_lib.hpp
