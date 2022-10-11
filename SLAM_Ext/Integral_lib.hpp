@@ -62,14 +62,20 @@ double EnergyAngularIntegral_real_derivative2_zz_zz( double sig, double r, doubl
 	double EnergyAngularIntegral_real_derivative2_zz_zz_right( double sig, double r, double d );
 
 // Reciprocal Space Integrals
-double EnergyAngularIntegral_reci_ss( double r, double g );
-double EnergyAngularIntegral_reci_xx( double r, double g );
-double EnergyAngularIntegral_reci_zz( double r, double g );
+double EnergyAngularIntegral_reci_ss_cos( const double r, const double g );
+double EnergyAngularIntegral_reci_xx_cos( const double r, const double g );
+double EnergyAngularIntegral_reci_zz_cos( const double r, const double g );
+
+double EnergyAngularIntegral_reci_sz_sin( const double r, const double g );
+
 // Reciprocal Space Derivatige d/dgx(y,z) 
-double EnergyAngularIntegral_reci_derivative_x_xz( const double r, const double g );
-double EnergyAngularIntegral_reci_derivative_z_ss( const double r, const double g );
-double EnergyAngularIntegral_reci_derivative_z_xx( const double r, const double g );
-double EnergyAngularIntegral_reci_derivative_z_zz( const double r, const double g );
+double EnergyAngularIntegral_reci_derivative_x_xz_cos( const double r, const double g );
+double EnergyAngularIntegral_reci_derivative_z_ss_cos( const double r, const double g );
+double EnergyAngularIntegral_reci_derivative_z_xx_cos( const double r, const double g );
+double EnergyAngularIntegral_reci_derivative_z_zz_cos( const double r, const double g );
+
+double EnergyAngularIntegral_reci_derivative_x_sx_sin( const double r, const double g );
+double EnergyAngularIntegral_reci_derivative_z_sz_sin( const double r, const double g );
 
 /*
 double EnergyIntegral_reci_ss( double k1, double k2, double g, double as, double bs, double cs, double ds );

@@ -380,45 +380,84 @@ double EnergyAngularIntegral_real_derivative2_zz_zz_right( double sig, double r,
 
 ////	////	////	////	////	////
 
-// Energy Reciprocal space integrals
+////	Energy Reciprocal space integrals - Cosine Kernels
 
 ////	////	////	////	////	////
 
-double EnergyAngularIntegral_reci_ss( const double r, const double g )
+double EnergyAngularIntegral_reci_ss_cos( const double r, const double g )
 {	return sin(g*r)/g/r;
+// Sin(Gz*r)/(Gz*r);
 }
 
-double EnergyAngularIntegral_reci_xx( const double r, const double g )
+double EnergyAngularIntegral_reci_xx_cos( const double r, const double g )
 {	return 3.*(-g*r*cos(g*r)+sin(g*r))/g/g/g/r/r/r;
+// (3*(-(Gz*r*Cos(Gz*r)) + Sin(Gz*r)))/(Power(Gz,3)*Power(r,3));
 }
 
-double EnergyAngularIntegral_reci_zz( const double r, const double g )
+double EnergyAngularIntegral_reci_zz_cos( const double r, const double g )
 {	return 3.*(2.*g*r*cos(g*r)+(-2.+g*g*r*r)*sin(g*r))/g/g/g/r/r/r;
+// (3*(2*Gz*r*Cos(Gz*r) + (-2 + Power(Gz,2)*Power(r,2))*Sin(Gz*r)))/(Power(Gz,3)*Power(r,3));
+}
+
+////	Energy Reciprocal space integrals - Sine Kernels
+
+double EnergyAngularIntegral_reci_sz_sin( const double r, const double g )
+{	return (sqrt(3)*(-(g*r*cos(g*r)) + sin(g*r)))/g/g/r/r;
+// (Sqrt(3)*(-(Gz*r*Cos(Gz*r)) + Sin(Gz*r)))/(Power(Gz,2)*Power(r,2));
 }
 
 ////	////	////	////	////	////
 
-// Energy ReciSpace Derivative 'gx, gy, gz'
+////	Energy ReciSpace Derivative 'gx, gy, gz' - Cosine Kernels
 
 ////	////	////	////	////	////
 
 /// w.r.t 'gx'
 
-double EnergyAngularIntegral_reci_derivative_x_xz( const double r, const double g )
-{	return  (3*(3*g*r*cos(g*r) + (-3 + pow(g,2)*pow(r,2))*sin(g*r)))/(pow(g,4)*pow(r,3));
+double EnergyAngularIntegral_reci_derivative_x_xz_cos( const double r, const double g )
+{	return  (3*(3*g*r*cos(g*r) + (-3 + pow(g,2)*pow(r,2))*sin(g*r)))/g/g/g/g/r/r/r;
+// (3*(3*Gz*r*Cos(Gz*r) + (-3 + Power(Gz,2)*Power(r,2))*Sin(Gz*r)))/(Power(Gz,4)*Power(r,3));
 }
 
 /// w.r.t 'gz'
 
-double EnergyAngularIntegral_reci_derivative_z_ss( const double r, const double g )
-{	return (g*r*cos(g*r) - sin(g*r))/(pow(g,2)*r);
+double EnergyAngularIntegral_reci_derivative_z_ss_cos( const double r, const double g )
+{	return (g*r*cos(g*r) - sin(g*r))/g/g/r;
+// (Gz*r*Cos(Gz*r) - Sin(Gz*r))/(Power(Gz,2)*r);
 }
-double EnergyAngularIntegral_reci_derivative_z_xx( const double r, const double g )
-{	return (3*(3*g*r*cos(g*r) + (-3 + pow(g,2)*pow(r,2))*sin(g*r)))/(pow(g,4)*pow(r,3));
+double EnergyAngularIntegral_reci_derivative_z_xx_cos( const double r, const double g )
+{	return (3*(3*g*r*cos(g*r) + (-3 + pow(g,2)*pow(r,2))*sin(g*r)))/g/g/g/g/r/r/r;
+// (3*(3*Gz*r*Cos(Gz*r) + (-3 + Power(Gz,2)*Power(r,2))*Sin(Gz*r)))/(Power(Gz,4)*Power(r,3))
 }
-double EnergyAngularIntegral_reci_derivative_z_zz( const double r, const double g )
-{	return (3*g*r*(-6 + pow(g,2)*pow(r,2))*cos(g*r) - 9*(-2 + pow(g,2)*pow(r,2))*sin(g*r))/(pow(g,4)*pow(r,3));
+double EnergyAngularIntegral_reci_derivative_z_zz_cos( const double r, const double g )
+{	return (3*g*r*(-6 + pow(g,2)*pow(r,2))*cos(g*r) - 9*(-2 + pow(g,2)*pow(r,2))*sin(g*r))/g/g/g/g/r/r/r;
+// (3*Gz*r*(-6 + Power(Gz,2)*Power(r,2))*Cos(Gz*r) - 9*(-2 + Power(Gz,2)*Power(r,2))*Sin(Gz*r))/(Power(Gz,4)*Power(r,3));
 }
+
+////	Energy ReciSpace Derivative 'gx, gy, gz' - Sine Kernels
+
+/// w.r.t 'gx'
+
+double EnergyAngularIntegral_reci_derivative_x_sx_sin( const double r, const double g )
+{	return (sqrt(3)*(-(g*r*cos(g*r)) + sin(g*r)))/g/g/g/r/r;
+// (Sqrt(3)*(-(Gz*r*Cos(Gz*r)) + Sin(Gz*r)))/(Power(Gz,3)*Power(r,2));
+}
+
+/// w.r.t 'gz'
+
+double EnergyAngularIntegral_reci_derivative_z_sz_sin( const double r, const double g )
+{	return (sqrt(3)*(2*g*r*cos(g*r) + (-2 + pow(g,2)*pow(r,2))*sin(g*r)))/g/g/g/r/r;
+// (Sqrt(3)*(2*Gz*r*Cos(Gz*r) + (-2 + Power(Gz,2)*Power(r,2))*Sin(Gz*r)))/(Power(Gz,3)*Power(r,2));
+}
+
+
+
+
+
+
+
+
+
 
 
 

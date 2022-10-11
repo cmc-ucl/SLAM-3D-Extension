@@ -47,14 +47,13 @@ public:
 	const double NIntegral_test_real( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] );
 ///	///	///	///	///	///	///	///
 
-	// Real Space position integral
+	// Real Space position integral ... in a general reference frame
 	double real_position_integral( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] );
 
-	// Reci Space Self
+	// Reci Space Self : (ss) / (xx=yy=zz)
 	double reci_self_integral_ss( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig );
 	double reci_self_integral_xx( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig );
-	
-	// Reci Space Self
+	// Reci Space Self Derivatives : (sx=sy=sz) ... different way order same ... these functions in a general reference frame
 	double reci_self_integral_sx_grad_x( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig );
 
 	// Real Space Integral - LP...PointCharge(pc) Interaction
@@ -90,17 +89,23 @@ public:
 	// Real Space Integral - LP...LP Interaction
 
 
-	// Reci Space Integral - LP
-	double reci_ss_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
-	double reci_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
-	double reci_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	// Reci Space Integral - LP COSINE Part
+	double reci_ss_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	double reci_xx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );		// xx = yy
+	double reci_zz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	// Reci Space Integral - LP   SINE Part
+	double reci_sz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
 
-	// Reci Space Integral - LP derivative w.r.t. 'g' vector components
-	double reci_xz_grad_gx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
-	double reci_ss_grad_gz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
-	double reci_xx_grad_gz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
-	double reci_zz_grad_gz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	// Reci Space Integral - LP COSINE Part derivative w.r.t. 'g' vector components
+	double reci_xz_grad_gx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	double reci_ss_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	double reci_xx_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	double reci_zz_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	// Reci Space Integral - LP   SINE Part derivative w.r.t. 'g' vector components
+	double reci_sx_grad_gx_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
+	double reci_sz_grad_gz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g );
 	
+
 
 };
 

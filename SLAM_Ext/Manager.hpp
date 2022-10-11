@@ -101,9 +101,14 @@ void GetLonePairGroundState( Cell& C );
 const Eigen::Matrix4d& set_h_matrix_real_pc( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 void set_h_matrix_real_pc_derivative( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
 void set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
-// ReciSpace - Setting LP H Matrices
-const Eigen::Matrix4d& set_h_matrix_reci_pc( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
-void set_h_matrix_reci_pc_derivative( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
+
+// ReciSpace - Setting LP H Matrices CosinePart
+const Eigen::Matrix4d& set_h_matrix_reci_cos( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
+void set_h_matrix_reci_derivative_cos( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
+
+// ReciSpace - Setting LP H Matrices SinePart
+const Eigen::Matrix4d& set_h_matrix_reci_sin( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
+void set_h_matrix_reci_derivative_sin( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
 
 // Interaction - Lone Pair
 void CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );	// scf flag for calculating 
