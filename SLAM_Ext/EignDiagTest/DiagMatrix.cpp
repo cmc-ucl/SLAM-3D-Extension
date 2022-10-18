@@ -10,6 +10,8 @@ int main()
 {
 using std::cout, std::endl;
 
+
+	cout << "# Test 1 .............................................." << endl;
 	Eigen::EigenSolver<Eigen::Matrix3d> es;
 	Eigen::Matrix3d m;
 
@@ -25,6 +27,7 @@ using std::cout, std::endl;
 	cout << "EigenVectors : \n";
 	cout << es.eigenvectors() << endl;
 
+	cout << "# Test 2 .............................................." << endl;
 	m << 1.1,-0.6,3.25,
 	     -0.6,-4.6,5,
 	     3.25,5,-6.1;
@@ -50,6 +53,9 @@ using std::cout, std::endl;
 	{
 		printf("%12.6lf%12.6lf%12.6lf\n",es.eigenvectors()(i,0).real(),es.eigenvectors()(i,1).real(),es.eigenvectors()(i,2).real());
 	}
+
+	cout << "Mid Evec" << endl;
+	printf("%12.6lf\t%12.6lf\t%12.6lf\n",es.eigenvectors()(1,0).real(),es.eigenvectors()(1,1).real(),es.eigenvectors()(1,2).real());
 
 	cout << "Get Min index" << endl;
 	std::vector<double> evals;

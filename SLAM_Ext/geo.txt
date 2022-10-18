@@ -6,12 +6,10 @@ cell
 #.1541    5.7232    0.0000
 #.8851   -1.1551    2.3223
 
-
 atom	0.01	0.00	0.50	O	shel	0.1	-0.09	0.51
 atom	0.50	0.50	0.00	O	shel
 atom	0.00	0.50	0.49	Pb	lone
 atom	0.50	0.48	0.55	Pb	lone
-
 
 species Pb	lone	2.00	0.00	14.5
 species Ba	core	2.00

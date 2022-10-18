@@ -194,10 +194,26 @@ private:
 
 	int lp_gs_index;		// Ground State Index		// This variable is going to be set by manager class member function
 	Eigen::EigenSolver<Eigen::Matrix4d> lp_eigensolver;	// EigenSolver itself contains evals/evecs ... accessed by .eigenvalues() / .eigenvectors() // elements of vectors and matrices with type of std::complex<double?>
+	/*
+		! Solve EigenSystem       : this->lp_eigensolver.compute( $TARGE_MATRIX(SYSTEM) , compute_eigenvectors = true );
+
+		! Access Computed Results : this->lp_eigensolver.eigenvalues()[i].real() ...    real part of the 'i'th eigenvalue
+
+		!			    this->lp_eigensolver.eigenvectors()(i,j).real() ... real part of the (i,j)th eigenvector
+
+cout << "Get Min index" << endl;
+std::vector<double> evals;
+int min_idx;
+for(int i=0;i<3;i++)
+{       evals.push_back(es.eigenvalues()(i).real());
+}
+min_idx = std::min_element(evals.begin(),evals.end()) - evals.begin();
+cout << min_idx << endl;
+	*/
 
 	Eigen::Matrix4d lp_h_matrix;			// Lone pair Hamiltonian Matrix;
 	Eigen::Matrix4d lp_h_matrix_tmp;
-	Eigen::Matrix4d lp_h_matrix_derivative[3];	// 1,2,3 for 'x', 'y', 'z';
+	Eigen::Matrix4d lp_h_matrix_derivatives[3];	// 1,2,3 for 'x', 'y', 'z';
 	
 	Eigen::Vector3d lp_gd;
 	Eigen::Vector3d lp_gd_int;			// Gradient on the core by LonePair Density
@@ -215,6 +231,13 @@ public:
 	LonePair( const double frac_x, const double frac_y, const double frac_z, std::string species, std::string type, const Eigen::Vector3d* lattice_vector )
 	: Atom(frac_x,frac_y,frac_z,species,type,lattice_vector)
 	{
+		this->lp_h_matrix.setZero();
+		this->lp_h_matrix_tmp.setZero();
+		for(int i=0;i<3;i++){ this->lp_h_matrix_derivatives[i].setZero(); }
+
+		this->lp_gd.setZero();
+		this->lp_gd_int.setZero();
+
 		std::ifstream fp;
 		std::string str;
 		std::stringstream ss;
@@ -293,14 +316,6 @@ public:
 		{	std::cout << "Failed to read file : " << radial_p_file << std::endl;
 			std::exit(EXIT_FAILURE);
 		}
-
-		//Confirmed
-		//for(int i=0;i<this->lp_spline_knot_count;i++)
-		//{	printf("%20.6e\n",this->lp_r[i]);	}
-		//for(int i=0;i<this->lp_spline_knot_count-1;i++)
-		//{	printf("%20.6e%20.6e%20.6e%20.6e\n",this->lp_r_s_function[0][i],this->lp_r_s_function[1][i],this->lp_r_s_function[2][i],this->lp_r_s_function[3][i]);	}
-		//for(int i=0;i<this->lp_spline_knot_count-1;i++)
-		//{	printf("%20.6e%20.6e%20.6e%20.6e\n",this->lp_r_p_function[0][i],this->lp_r_p_function[1][i],this->lp_r_p_function[2][i],this->lp_r_p_function[3][i]);	}
 
 	}	// end Constructor
 

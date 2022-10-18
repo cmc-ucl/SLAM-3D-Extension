@@ -17,8 +17,10 @@ class Manager // Interaction Manager
 {
 
 std::vector<double> man_vec;
-LonePairMatrix_H man_lp_matrix_h;
+LonePairMatrix_H man_lp_matrix_h;	// LonePairMatrix_H : Instance ... managing solving integration tools
 
+
+////	////	////	////	////	////	////	////
 // lp - pc (point charge)
 Eigen::Matrix4d real_lp_h_pc[MX_C][MX_C];
 
@@ -62,6 +64,22 @@ Eigen::Matrix4d real_lp_h_lp_yz[MX_C][MX_C];
 Eigen::Matrix4d real_lp_h_lp_zx[MX_C][MX_C];
 Eigen::Matrix4d real_lp_h_lp_zy[MX_C][MX_C];
 Eigen::Matrix4d real_lp_h_lp_zz[MX_C][MX_C];
+////	////	////	////	////	////	////	////
+
+// WorkSpace
+Eigen::Matrix4d man_matrix4d_ws[9];
+
+// Storage for H Matrix (E) - LP vs PointCharge Interaction (core/shell/lp core)
+Eigen::Matrix4d LPC_H_Real[MX_C][MX_C][2];	// [i][j][0] ... if 'j' is core or lp_core // [i][j][1] ... if 'j' is shell
+Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with h'=k'=l' - reciprocal self (i.e., lone pair electron interacting with its core in the central sublattice)
+
+// Storage for H Matrix (E) - LP vs LP
+Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];
+Eigen::Matrix4d LPLP_H_Real_x[MX_C][MX_C];
+Eigen::Matrix4d LPLP_H_Real_y[MX_C][MX_C];
+Eigen::Matrix4d LPLP_H_Real_z[MX_C][MX_C];
+Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
+
 
 public:
 
@@ -109,6 +127,15 @@ void set_h_matrix_reci_derivative_cos( LonePair* lp, const Eigen::Vector3d& G, c
 // ReciSpace - Setting LP H Matrices SinePart
 const Eigen::Matrix4d& set_h_matrix_reci_sin( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
 void set_h_matrix_reci_derivative_sin( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
+
+// ACTUAL USE - H (E) Matrix Calculations
+void set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
+
+
+
+
+
+
 
 // Interaction - Lone Pair
 void CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf );	// scf flag for calculating 

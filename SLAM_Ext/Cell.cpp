@@ -498,8 +498,10 @@ using std::cout, std::endl;
 	Eigen::Vector3d trans;			// Translation Vector
 	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
+	/* Initiate SCF Cycle */
 	manager.InitialiseSCF();
 
+	// SCF Loop 'n'
 	for(int n=0;n<this->scf_iter_max;n++)
 	{
 		manager.InitialiseLonePairEnergy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)

@@ -142,42 +142,6 @@ void Manager::set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vecto
 			this->real_lp_h_lp_zx[lp_i][pc_i](i,j) = m_glo(2,0); this->real_lp_h_lp_zy[lp_i][pc_i](i,j) = m_glo(2,1); this->real_lp_h_lp_zz[lp_i][pc_i](i,j) = m_glo(2,2);
 		}
 	}
-
-#ifdef PRINT_REAL_SPACE_D2
-	
-	std::cout << "# RealSpace 2D Validation\n";
-	{
-		using std::cout, std::endl;
-
-		cout << "#XX \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_xx[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#XY \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_xy[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#XZ \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_xz[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#YX \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_yx[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#YY \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_yy[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#YZ \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_yz[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#ZX \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_zx[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#ZY \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_zy[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-		cout << "#ZZ \n";
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%18.12lf\t",this->real_lp_h_lp_zz[lp_i][pc_i](i,j)); } cout << endl; }
-		cout << endl;
-	}
-#endif
 }
 
 const Eigen::Matrix4d& Manager::set_h_matrix_reci_cos( /* IN/RES OUT */ LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i )
@@ -298,6 +262,7 @@ void Manager::set_h_matrix_reci_derivative_sin( /* IN/RES OUT */ LonePair* lp, c
 		}
 	}
 }
+
 
 void Manager::InitialiseEnergy( Cell& C )
 {
@@ -1493,6 +1458,55 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 ////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
 
 ////	LonePair_Energy
+
+void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+{
+	const std::string type_i = C.AtomList[i]->type;
+	const std::string type_j = C.AtomList[j]->type;
+	double lp_cf[4];
+	double factor;
+	Eigen::Vector3d Rij;
+
+	/* if 'lone' comes to the place 'i'    : compute h matrix 
+
+	   else (i.e., comes to the place 'j') : compute the interaction energy 
+	*/
+
+	if( type_i == "lone" && type_j == "core" )	// LonePairD - Core 
+	{
+		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;		// Ri - Rj - T ... Get the distance vector from a lone pair 'i' and 'j' core
+		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
+		this->man_matrix4d_ws[0].setZero();
+		// Evaluation
+		this->man_matrix4d_ws[0](0,0) = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		this->man_matrix4d_ws[0](0,3) = this->man_lp_matrix_h.real_sz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		this->man_matrix4d_ws[0](3,0) = this->man_matrix4d_ws[0](0,3);
+		this->man_matrix4d_ws[0](1,1) = this->man_lp_matrix_h.real_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		this->man_matrix4d_ws[0](2,2) = this->man_matrix4d_ws[0](1,1);
+		this->man_matrix4d_ws[0](3,3) = this->man_lp_matrix_h.real_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		// Inverse Transformation .. mul 1/2 ... factor-out double counting
+		factor = 0.5 * static_cast<LonePair*>(C.AtomList[i])->lp_charge * C.AtomList[j]->charge;
+		this->LPC_H_Real[i][j][0] = 0.5 * (this->man_lp_matrix_h.transform_matrix.transpose() * this->man_matrix4d_ws[0] * this->man_lp_matrix_h.transform_matrix);
+	}
+
+	if( type_i == "core" && type_j == "lone" )	// LonePairD - Core
+	{
+		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
+		lp_cf[0] = lp->lp_eigensolver.eigenvectors()(0,lp->lp_gs_index).real();	// s
+		lp_cf[1] = lp->lp_eigensolver.eigenvectors()(1,lp->lp_gs_index).real();	// px
+		lp_cf[2] = lp->lp_eigensolver.eigenvectors()(2,lp->lp_gs_index).real();	// py
+		lp_cf[3] = lp->lp_eigensolver.eigenvectors()(3,lp->lp_gs_index).real();	// pz
+
+
+
+
+		factor = 0.5 * C.AtomList[i]->charge * static_cast<LonePair*>(C.AtomList[j])->lp_charge;
+	}
+
+	return;
+}
 
 void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )
 {
