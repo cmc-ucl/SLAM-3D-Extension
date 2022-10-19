@@ -1460,10 +1460,10 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 ////	LonePair_Energy
 
 /* Supportive Functions */
-void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* in/out */ Eigen::Matrix4d& h_mat_ws, Eigen::Matrix4d& h_mat_out )
+void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* workspace */ Eigen::Matrix4d& h_mat_ws, /* out */ Eigen::Matrix4d& h_mat_out )
 {
-	this->man_lp_matrix_h.GetTransformationmatrix(Rij);
-	h_mat.setZero();
+	this->man_lp_matrix_h.GetTransformationMatrix(Rij);
+	h_mat_ws.setZero();
 
 	// Evaluation
 	h_mat_ws(0,0) = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
@@ -1495,17 +1495,13 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 	{
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
-		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i].cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
-		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
-
-		this->man_matrix4d_ws[0].setZero();
-
+		// W.R.T Core
+		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
 		// Evaluation
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
-		// Inverse Transformation .. mul 1/2 ... factor-out double counting
-		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;
-		this->LPC_H_Real[i][j][0] = factor * this->man_matrix_4d_ws[1];
+		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;			// Inverse Transformation .. mul 1/2 ... factor-out double counting
+		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_ws[1];
 		/*
 			H matrix element of 'i'th LP ? - should it be additive?
 		*/
@@ -1520,43 +1516,90 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		lp_cf[2] = lp->lp_eigensolver.eigenvectors()(2,lp->lp_gs_index).real();	// py
 		lp_cf[3] = lp->lp_eigensolver.eigenvectors()(3,lp->lp_gs_index).real();	// pz
 
-		Rij = C.AtomList[i].cart - ( C.AtomList[j].cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
-		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
-		
-		this->man_matrix4d_ws[0].setZero();
-		this->man_matrix4d_ws[1].setZero();
+		// W.R.T LP Density
+		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
+		// Evalulation
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
-		// Evaluation 
-		this->man_matrix4d_ws[0](0,0) = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-		this->man_matrix4d_ws[0](0,3) = this->man_lp_matrix_h.real_sz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-		this->man_matrix4d_ws[0](3,0) = this->man_matrix4d_ws[0](0,3);
-		this->man_matrix4d_ws[0](1,1) = this->man_lp_matrix_h.real_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-		this->man_matrix4d_ws[0](2,2) = this->man_matrix4d_ws[0](1,1);
-		this->man_matrix4d_ws[0](3,3) = this->man_lp_matrix_h.real_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-
-		// Inverse Transformation .. mul 1/2 ... factor-out double counting
 		factor = 0.5 * C.AtomList[i]->charge * lp->lp_charge;
-		this->man_matrix4d_ws[1] = factor * (this->man_lp_matrix_h.transform_matrix.transpose() * this->man_matrix4d_ws[0] * this->man_lp_matrix_h.transform_matrix);		//// POSSIBLE MEMOIZATION
+		this->man_matrix4d_ws[1] = factor * this->man_matrix4d_ws[1];		// POSSIBLE MEMOIZATION ...
 
+		// Calculate Energy Contribution by the given LP density in the periodic image and a point charge in the central sublattice
 		partial_e = 0.;
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}			// PartialE ... Process Required
 	}
 
 	if( type_i == "lone" && type_j == "shel" )
 	{
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
-		// W.R.T CorePart
-		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i].cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(shell CorePart);
-		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
+		// <1> W.R.T CorePart
+		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(shell CorePart);
+		// Evalulation
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
-
+		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;
+		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_ws[1];		// [0] for Core
+		
+		// <2> W.R.T ShelPart
+		Rij = ( static_cast<Shell*>(C.AtomList[j])->shel_cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(ShellPart);
+		// Evalulation
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
+		
+		factor = 0.5 * lp->lp_charge * static_cast<Shell*>(C.AtomList[j])->shel_charge;
+		this->LPC_H_Real[i][j][1] += factor * this->man_matrix4d_ws[1];		// [1] for Shell
 	}
 
 	if( type_i == "shel" && type_j == "lone" )
 	{
+		// Get 'j' lone pair cation & its eigenvectors of the ground-state
+		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
+		lp_cf[0] = lp->lp_eigensolver.eigenvectors()(0,lp->lp_gs_index).real();	// s
+		lp_cf[1] = lp->lp_eigensolver.eigenvectors()(1,lp->lp_gs_index).real();	// px
+		lp_cf[2] = lp->lp_eigensolver.eigenvectors()(2,lp->lp_gs_index).real();	// py
+		lp_cf[3] = lp->lp_eigensolver.eigenvectors()(3,lp->lp_gs_index).real();	// pz
 
+		// <1> Core W.R.T LP Density 
+		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
+		// Evalulation
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
+
+		factor = 0.5 * C.AtomList[i]->charge * lp->lp_charge;
+		this->man_matrix4d_ws[1] = factor * this->man_matrix4d_ws[1];
+
+		// Calculation Energy Contribution by the given LP density in the periodic image and the core in the central sublattice
+		partial_e = 0.;
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}			// PartialE ... Process Required
+		
+
+		// <2> Shel W.R.T LP Density
+		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - ( C.AtomList[j]->cart + TransVector );
+		// Evalulation
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
+
+		factor = 0.5 * static_cast<Shell*>(C.AtomList[i])->shel_charge * lp->lp_charge;
+		this->man_matrix4d_ws[1] = factor * this->man_matrix4d_ws[1];
+
+		// Calculation Energy Contribution by the given LP density in the periodic image and the shel in the central sublattice
+		partial_e = 0.;
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}			// PartialE ... Process Required
 	}
+
+	if( type_i == "lone" && type_j == "lone" )
+	{
+		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
+		LonePair* lpj = static_cast<LonePair*>(C.AtomList[j]);
+	
+		// <1> LP(i) Density vs LP(j) Core
+		Rij = ( C.AtomList[j]->cart + TransVector )
+
+
+		// <2> LP(i) Core    vs LP(j) Density
+
+		
+		// <3> LP(i) Density vs LP(j) Density
+	}
+
 
 	return;
 }

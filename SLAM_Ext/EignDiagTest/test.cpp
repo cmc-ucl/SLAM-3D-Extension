@@ -29,5 +29,10 @@ int main()
 
 	cout << m << endl;
 
+	cout << endl;
+	cout << "Onsite operation" << endl;
+	m = 1.23 * m;
+	cout << m << endl;
+
 	return 0;
 }

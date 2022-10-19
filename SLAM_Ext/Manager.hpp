@@ -128,6 +128,9 @@ void set_h_matrix_reci_derivative_cos( LonePair* lp, const Eigen::Vector3d& G, c
 const Eigen::Matrix4d& set_h_matrix_reci_sin( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
 void set_h_matrix_reci_derivative_sin( LonePair* lp, const Eigen::Vector3d& G, const int lp_i, const int pc_i );
 
+
+
+void support_h_matrix_real( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* in/out */ Eigen::Matrix4d& h_mat_ws, Eigen::Matrix4d& h_mat_out );
 // ACTUAL USE - H (E) Matrix Calculations
 void set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 
