@@ -1459,50 +1459,103 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 
 ////	LonePair_Energy
 
+/* Supportive Functions */
+void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* in/out */ Eigen::Matrix4d& h_mat_ws, Eigen::Matrix4d& h_mat_out )
+{
+	this->man_lp_matrix_h.GetTransformationmatrix(Rij);
+	h_mat.setZero();
+
+	// Evaluation
+	h_mat_ws(0,0) = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws(0,3) = this->man_lp_matrix_h.real_sz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws(3,0) = h_mat_ws(0,3);
+	h_mat_ws(1,1) = this->man_lp_matrix_h.real_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws(2,2) = h_mat_ws(1,1);
+	h_mat_ws(3,3) = this->man_lp_matrix_h.real_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+
+	// Inverse Transformation
+	h_mat_out = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws * this->man_lp_matrix_h.transform_matrix;
+}
+
 void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
 {
 	const std::string type_i = C.AtomList[i]->type;
 	const std::string type_j = C.AtomList[j]->type;
 	double lp_cf[4];
-	double factor;
+	double factor;		// Multiplication Factor ... controls species charges + etcs.
+	double partial_e;	// Partial energy when 'i' is non-LP species and 'j' is LP density
 	Eigen::Vector3d Rij;
 
 	/* if 'lone' comes to the place 'i'    : compute h matrix 
 
-	   else (i.e., comes to the place 'j') : compute the interaction energy 
+	   else (i.e., comes to the place 'j') : compute the interaction energy -> based on the previous charge density shape (i.e., LP lone pair eigenvectors)
 	*/
 
 	if( type_i == "lone" && type_j == "core" )	// LonePairD - Core 
 	{
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
-		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;		// Ri - Rj - T ... Get the distance vector from a lone pair 'i' and 'j' core
+		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i].cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
 		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
+
 		this->man_matrix4d_ws[0].setZero();
+
 		// Evaluation
-		this->man_matrix4d_ws[0](0,0) = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-		this->man_matrix4d_ws[0](0,3) = this->man_lp_matrix_h.real_sz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-		this->man_matrix4d_ws[0](3,0) = this->man_matrix4d_ws[0](0,3);
-		this->man_matrix4d_ws[0](1,1) = this->man_lp_matrix_h.real_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
-		this->man_matrix4d_ws[0](2,2) = this->man_matrix4d_ws[0](1,1);
-		this->man_matrix4d_ws[0](3,3) = this->man_lp_matrix_h.real_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
+
 		// Inverse Transformation .. mul 1/2 ... factor-out double counting
-		factor = 0.5 * static_cast<LonePair*>(C.AtomList[i])->lp_charge * C.AtomList[j]->charge;
-		this->LPC_H_Real[i][j][0] = 0.5 * (this->man_lp_matrix_h.transform_matrix.transpose() * this->man_matrix4d_ws[0] * this->man_lp_matrix_h.transform_matrix);
+		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;
+		this->LPC_H_Real[i][j][0] = factor * this->man_matrix_4d_ws[1];
+		/*
+			H matrix element of 'i'th LP ? - should it be additive?
+		*/
 	}
 
 	if( type_i == "core" && type_j == "lone" )	// LonePairD - Core
 	{
+		// Get 'j' lone pair cation & its eigenvectors of the ground-state
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
 		lp_cf[0] = lp->lp_eigensolver.eigenvectors()(0,lp->lp_gs_index).real();	// s
 		lp_cf[1] = lp->lp_eigensolver.eigenvectors()(1,lp->lp_gs_index).real();	// px
 		lp_cf[2] = lp->lp_eigensolver.eigenvectors()(2,lp->lp_gs_index).real();	// py
 		lp_cf[3] = lp->lp_eigensolver.eigenvectors()(3,lp->lp_gs_index).real();	// pz
 
+		Rij = C.AtomList[i].cart - ( C.AtomList[j].cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
+		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
+		
+		this->man_matrix4d_ws[0].setZero();
+		this->man_matrix4d_ws[1].setZero();
+
+		// Evaluation 
+		this->man_matrix4d_ws[0](0,0) = this->man_lp_matrix_h.real_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		this->man_matrix4d_ws[0](0,3) = this->man_lp_matrix_h.real_sz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		this->man_matrix4d_ws[0](3,0) = this->man_matrix4d_ws[0](0,3);
+		this->man_matrix4d_ws[0](1,1) = this->man_lp_matrix_h.real_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+		this->man_matrix4d_ws[0](2,2) = this->man_matrix4d_ws[0](1,1);
+		this->man_matrix4d_ws[0](3,3) = this->man_lp_matrix_h.real_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,C.sigma,Rij.norm());
+
+		// Inverse Transformation .. mul 1/2 ... factor-out double counting
+		factor = 0.5 * C.AtomList[i]->charge * lp->lp_charge;
+		this->man_matrix4d_ws[1] = factor * (this->man_lp_matrix_h.transform_matrix.transpose() * this->man_matrix4d_ws[0] * this->man_lp_matrix_h.transform_matrix);		//// POSSIBLE MEMOIZATION
+
+		partial_e = 0.;
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}
+	}
+
+	if( type_i == "lone" && type_j == "shel" )
+	{
+		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+
+		// W.R.T CorePart
+		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i].cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(shell CorePart);
+		this->man_lp_matrix_h.GetTransformationMatrix(Rij);
 
 
+	}
 
-		factor = 0.5 * C.AtomList[i]->charge * static_cast<LonePair*>(C.AtomList[j])->lp_charge;
+	if( type_i == "shel" && type_j == "lone" )
+	{
+
 	}
 
 	return;
