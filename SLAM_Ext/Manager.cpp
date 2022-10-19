@@ -1590,14 +1590,33 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		LonePair* lpj = static_cast<LonePair*>(C.AtomList[j]);
 	
-		// <1> LP(i) Density vs LP(j) Core
-		Rij = ( C.AtomList[j]->cart + TransVector )
+		// <1> LP(i) Density ('central sublattice') vs LP(j) Core ('periodic image')
+		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i)('in the central sublattice')  -> LP(j)('in the periodic image') core
+		// Evaluation
+		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
+		factor = 0.5 * lpi->lp_charge * C.AtomList[j]->charge;			// LP(i) charge * LP(j) core charge
+		this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_ws[1];
 
-		// <2> LP(i) Core    vs LP(j) Density
+		// <2> LP(i) Core ('central sublattice') vs LP(j) Density ('periodic image')
+		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// LP(j)('in the periodic image') -> LP(j)('in the central sublattice')
+		// Get LP(j) Density eigenvectors 
+		lp_cf[0] = lpj->lp_eigensolver.eigenvectors()(0,lpj->lp_gs_index).real();	// s
+		lp_cf[1] = lpj->lp_eigensolver.eigenvectors()(1,lpj->lp_gs_index).real();	// px
+		lp_cf[2] = lpj->lp_eigensolver.eigenvectors()(2,lpj->lp_gs_index).real();	// py
+		lp_cf[3] = lpj->lp_eigensolver.eigenvectors()(3,lpj->lp_gs_index).real();	// pz
+		// Evalulation
+		Manager::support_h_matrix_real( lpj, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
-		
+		factor = 0.5 * C.AtomList[i]->charge * lpj->lp_charge;			// LP(i) core charge * LP(j) charge
+
+		// Calculation Energy Contribution by the given LP density in the periodic image and the LP core in the central sublattice
+		partial_e = 0.;
+		for(int i=0;i<4;i++){ for(int j=0;j<4;j++) { partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}			// PartialE ... Process Required
+
 		// <3> LP(i) Density vs LP(j) Density
+
+
 	}
 
 
