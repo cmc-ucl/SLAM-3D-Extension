@@ -34,5 +34,19 @@ int main()
 	m = 1.23 * m;
 	cout << m << endl;
 
+	cout << "zero test" << endl;
+
+	int h;
+
+	h = 0;
+
+	double val = h*0.213124112;
+
+	if( val == 0 )
+	{	cout << "yes " << endl;
+	}	
+
+	cout << 2 * double.MIN_VALUE << endl;
+
 	return 0;
 }

@@ -1477,6 +1477,49 @@ void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, co
 	h_mat_out = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws * this->man_lp_matrix_h.transform_matrix;
 }
 
+void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* workspace */ Eigen::Matrix4d (&h_mat_ws)[3], /* out */ Eigen::Matrix4d (&h_mat_out)[3] )
+{
+	Eigen::Vector3d v_loc, v_glo;	// workspace
+
+	this->man_lp_matrix_h.GetTransformationMatrix(Rij);
+
+	h_mat_ws[0].setZero(); h_mat_ws[1].setZero(); h_mat_ws[2].setZero();	// 1st derivatives ... w.r.t. 'j' of Ri -> Rj // dx dy dz - workspace
+
+	// 1. Compute first derivative integrals in a local symmetry
+	h_mat_ws[0](0,1) = this->man_lp_matrix_h.real_sx_grad_x_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws[0](1,0) = h_mat_ws[0](0,1);
+	h_mat_ws[0](1,3) = this->man_lp_matrix_h.real_xz_grad_x_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws[0](3,1) = h_mat_ws[0](1,3);
+
+	h_mat_ws[1](0,2) = h_mat_ws[1](2,0) = h_mat_ws[0](0,1);	// y-sy = x-sx
+	h_mat_ws[1](2,3) = h_mat_ws[1](3,2) = h_mat_ws[0](1,3);	// y-yz = x-sz
+	
+	h_mat_ws[2](0,0) = this->man_lp_matrix_h.real_ss_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws[2](0,3) = this->man_lp_matrix_h.real_sz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws[2](3,0) = h_mat_ws[2](0,3);
+	h_mat_ws[2](1,1) = this->man_lp_matrix_h.real_xx_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+	h_mat_ws[2](2,2) = h_mat_ws[2](1,1);
+	h_mat_ws[2](3,3) = this->man_lp_matrix_h.real_zz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
+
+	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
+	// note : h_tmp_*_ws are in the local reference frame, their x'/y'/z' element (local) has to be inversed to x/y/z (global) 
+	h_mat_ws[0] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[0] * this->man_lp_matrix_h.transform_matrix;
+	h_mat_ws[1] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[1] * this->man_lp_matrix_h.transform_matrix;
+	h_mat_ws[2] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[2] * this->man_lp_matrix_h.transform_matrix;
+
+	// 3. Transform back to the global reference frame
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	v_loc << h_mat_ws[0](i,j), h_mat_ws[1](i,j), h_mat_ws[2](i,j);
+			v_glo = this->man_lp_matrix_h.transform_matrix_shorthand.transpose() * v_loc;
+			
+			h_mat_out[0](i,j) = v_glo(0);
+			h_mat_out[1](i,j) = v_glo(1);
+			h_mat_out[2](i,j) = v_glo(2);
+		}
+	}
+}
+
 void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
 {
 	const std::string type_i = C.AtomList[i]->type;
@@ -1491,14 +1534,24 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 	   else (i.e., comes to the place 'j') : compute the interaction energy -> based on the previous charge density shape (i.e., LP lone pair eigenvectors)
 	*/
 
-	if( type_i == "lone" && type_j == "core" )	// LonePairD - Core 
+	/*
+		LonePairD (in the central-sublattice) vs Classical Entities (core, shell, LPcore ... ) can be calculated only once ...? )
+
+		Since,
+
+		In the 'n'th (n!=1) SCF Cycle, the pre-calculated values are not changed, but only
+
+		Classical Entities (in the central-sublattice) vs LonePairD (in the periodic images) are changing ... depending upon the changes in the LonePairD EigenVectors
+	*/
+
+	if( type_i == "lone" && type_j == "core" )	// LonePairD (central-sublattice, CSL) ----> Core(periodic image, PI)
 	{
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
 		// W.R.T Core
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
 		// Evaluation
-		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
+		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );	// output saved 'this->man_matrix4d_ws[1]'
 
 		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;			// Inverse Transformation .. mul 1/2 ... factor-out double counting
 		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_ws[1];
@@ -1507,7 +1560,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		*/
 	}
 
-	if( type_i == "core" && type_j == "lone" )	// LonePairD - Core
+	if( type_i == "core" && type_j == "lone" )	// Core (CSL) ----> LonePairD (PI)
 	{
 		// Get 'j' lone pair cation & its eigenvectors of the ground-state
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
@@ -1522,18 +1575,18 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
 		factor = 0.5 * C.AtomList[i]->charge * lp->lp_charge;
-		this->man_matrix4d_ws[1] = factor * this->man_matrix4d_ws[1];		// POSSIBLE MEMOIZATION ...
+		this->man_matrix4d_ws[1] = factor * this->man_matrix4d_ws[1];		// POSSIBLE MEMOIZATION ... (may be difficult ... since 'j' LP depends on lattice translation 'T')
 
 		// Calculate Energy Contribution by the given LP density in the periodic image and a point charge in the central sublattice
 		partial_e = 0.;
 		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}			// PartialE ... Process Required
 	}
 
-	if( type_i == "lone" && type_j == "shel" )
+	if( type_i == "lone" && type_j == "shel" )	// LonePairD (CSL) ----> Shell (PI)
 	{
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
-		// <1> W.R.T CorePart
+		// <1> W.R.T CorePart (PI)
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(shell CorePart);
 		// Evalulation
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
@@ -1541,7 +1594,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;
 		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_ws[1];		// [0] for Core
 		
-		// <2> W.R.T ShelPart
+		// <2> W.R.T ShelPart (PI)
 		Rij = ( static_cast<Shell*>(C.AtomList[j])->shel_cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(ShellPart);
 		// Evalulation
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
@@ -1550,7 +1603,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		this->LPC_H_Real[i][j][1] += factor * this->man_matrix4d_ws[1];		// [1] for Shell
 	}
 
-	if( type_i == "shel" && type_j == "lone" )
+	if( type_i == "shel" && type_j == "lone" )	// Shell (CSL) ----> LonePairD (PI)
 	{
 		// Get 'j' lone pair cation & its eigenvectors of the ground-state
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
@@ -1585,20 +1638,20 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_ws[1](i,j); }}			// PartialE ... Process Required
 	}
 
-	if( type_i == "lone" && type_j == "lone" )
+	if( type_i == "lone" && type_j == "lone" )	// i == j will not get caught when h=k=l=0 by 'if' of its wrapper
 	{
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		LonePair* lpj = static_cast<LonePair*>(C.AtomList[j]);
 	
-		// <1> LP(i) Density ('central sublattice') vs LP(j) Core ('periodic image')
+		// <1> LP(i) Density (CSL) vs LP(j) Core (PI)
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i)('in the central sublattice')  -> LP(j)('in the periodic image') core
 		// Evaluation
 		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_ws[0], this->man_matrix4d_ws[1] );
 
 		factor = 0.5 * lpi->lp_charge * C.AtomList[j]->charge;			// LP(i) charge * LP(j) core charge
-		this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_ws[1];
+		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_ws[1];		// LPcore treated as a classical entity ... saved in 'LPC_H_...'
 
-		// <2> LP(i) Core ('central sublattice') vs LP(j) Density ('periodic image')
+		// <2> LP(i) Core (CSL) vs LP(j) Density (PI)
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// LP(j)('in the periodic image') -> LP(j)('in the central sublattice')
 		// Get LP(j) Density eigenvectors 
 		lp_cf[0] = lpj->lp_eigensolver.eigenvectors()(0,lpj->lp_gs_index).real();	// s

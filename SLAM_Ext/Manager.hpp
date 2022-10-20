@@ -69,7 +69,10 @@ Eigen::Matrix4d real_lp_h_lp_zz[MX_C][MX_C];
 // WorkSpace
 Eigen::Matrix4d man_matrix4d_ws[9];
 
-// Storage for H Matrix (E) - LP vs PointCharge Interaction (core/shell/lp core)
+/* 
+	Storage for H Matrix (E) - LP vs PointCharge Interaction (core/shell/lp core)
+	Saving Interaction of a lone pair density (in the central sublattice) w.r.t. surrounding classical entities 
+*/
 Eigen::Matrix4d LPC_H_Real[MX_C][MX_C][2];	// [i][j][0] ... if 'j' is core or lp_core // [i][j][1] ... if 'j' is shell
 Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with h'=k'=l' - reciprocal self (i.e., lone pair electron interacting with its core in the central sublattice)
 
@@ -130,7 +133,9 @@ void set_h_matrix_reci_derivative_sin( LonePair* lp, const Eigen::Vector3d& G, c
 
 
 
+// Internal Uses in " CoulombLonePairReal " below
 void support_h_matrix_real( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* in/out */ Eigen::Matrix4d& h_mat_ws, Eigen::Matrix4d& h_mat_out );
+void support_h_matrix_real_derivative( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* workspace */ Eigen::Matrix4d (&h_mat_ws)[3], /* out */ Eigen::Matrix4d (&h_mat_out)[3] );
 // ACTUAL USE - H (E) Matrix Calculations
 void set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 

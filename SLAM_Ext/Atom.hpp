@@ -201,6 +201,7 @@ private:
 
 		!			    this->lp_eigensolver.eigenvectors()(i,j).real() ... real part of the (i,j)th eigenvector
 
+// Below should be implemented as the class internal method
 cout << "Get Min index" << endl;
 std::vector<double> evals;
 int min_idx;

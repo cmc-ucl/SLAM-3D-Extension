@@ -522,15 +522,15 @@ cout << " / is first scf : " << is_first_scf << endl;
 							//// START REAL SPACE
 							if( (trans.norm()) < this->rcut )
 							{	
-								if( h == 0 && k == 0 && l == 0 )
+								if( h == 0 && k == 0 && l == 0 )	// within the central sublattice
 								{	
-								    if( i != j )
+								    if( i != j )			// DO NOT directly compute self interaction !!
 								    {
 									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);	// Sep 7 2022 Wed, for the moment calculating 'LonePair Core' involved interactions
-																	// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
+																		// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
 								    }	// h=k=l=0 (central image) - excluding self interaction
 								}
-								else
+								else					// case outside the central sublattice
 								{
 									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);
 								}
