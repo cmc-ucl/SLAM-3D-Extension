@@ -226,6 +226,7 @@ cout << min_idx << endl;
 	std::vector<double> lp_r_p_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
 							// Convention ... for a range with knots : lp_r[i] ~ lp_r[i+1]
 							// a,b,c,d : ..[0-3][i]
+	double real_position_integral;
 
 public:
 		

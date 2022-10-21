@@ -66,8 +66,14 @@ Eigen::Matrix4d real_lp_h_lp_zy[MX_C][MX_C];
 Eigen::Matrix4d real_lp_h_lp_zz[MX_C][MX_C];
 ////	////	////	////	////	////	////	////
 
-// WorkSpace
-Eigen::Matrix4d man_matrix4d_ws[9];
+
+
+Eigen::Matrix4d man_matrix4d_h_real_ws[2];			// Workspace H matrix real part
+Eigen::Matrix4d man_matrix4d_h_real_derivative_ws[3];		// Workspace H matrix real derivative
+Eigen::Matrix4d man_matrix4d_h_real_derivative_out[3];
+Eigen::Matrix4d man_matrix4d_h_real_derivative2_ws[9];		// Workspace H matrix real derivative2
+Eigen::Matrix4d man_matrix4d_h_real_derivative2_out[9];
+
 
 /* 
 	Storage for H Matrix (E) - LP vs PointCharge Interaction (core/shell/lp core)
@@ -77,8 +83,8 @@ Eigen::Matrix4d LPC_H_Real[MX_C][MX_C][2];	// [i][j][0] ... if 'j' is core or lp
 Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with h'=k'=l' - reciprocal self (i.e., lone pair electron interacting with its core in the central sublattice)
 
 // Storage for H Matrix (E) - LP vs LP
-Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];
-Eigen::Matrix4d LPLP_H_Real_x[MX_C][MX_C];
+Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];	// Save Monopolar Contribution LP <---> LP
+Eigen::Matrix4d LPLP_H_Real_x[MX_C][MX_C];	// Save Dipolar   Contribution LP <---> LP
 Eigen::Matrix4d LPLP_H_Real_y[MX_C][MX_C];
 Eigen::Matrix4d LPLP_H_Real_z[MX_C][MX_C];
 Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
