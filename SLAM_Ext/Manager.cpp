@@ -1459,7 +1459,8 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 
 ////	LonePair_Energy
 
-/* Supportive Functions */
+/* Supportive Functions - RealSpace i!=j cases */
+
 void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* workspace */ Eigen::Matrix4d& h_mat_ws, /* out */ Eigen::Matrix4d& h_mat_out )
 {
 	this->man_lp_matrix_h.GetTransformationMatrix(Rij);
