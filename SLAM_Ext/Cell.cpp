@@ -509,12 +509,16 @@ using std::cout, std::endl;
 cout << "********************************************************\n";
 cout << "SCF CNT : " << n;
 cout << " / is first scf : " << is_first_scf << endl;
-
+printf("hkl indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
+printf("rcut        : %12.6lf\n",this->rcut);
 		auto start = std::chrono::system_clock::now();
 
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
-			{	for(int h = -this->h_max ; h <= this->h_max ; h++)
+			{	
+				printf(" ######### PAIR : %d \t %d\n", i, j);
+
+				for(int h = -this->h_max ; h <= this->h_max ; h++)
 				{	for(int k = -this->k_max ; k <= this->k_max ; k++)
 					{	for(int l = -this->l_max ; l <= this->l_max ; l++)
 						{
@@ -528,10 +532,12 @@ cout << " / is first scf : " << is_first_scf << endl;
 								    {
 									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);	// Sep 7 2022 Wed, for the moment calculating 'LonePair Core' involved interactions
 																		// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
+									//printf("CENTRAL SUBLATTICE ----------- : %10.4d\t%10.4d\t%10.4d\n",h,k,l);
 								    }	// h=k=l=0 (central image) - excluding self interaction
 								}
 								else					// case outside the central sublattice
 								{
+									//printf("non central : %10.4d\t%10.4d\t%10.4d\n",h,k,l);
 									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);
 								}
 							}
@@ -542,6 +548,7 @@ cout << " / is first scf : " << is_first_scf << endl;
 			}// end j
 		}// end i
 
+		cout << " --------- REAL DONE " << endl;
 		auto end = std::chrono::system_clock::now();
 
 		//

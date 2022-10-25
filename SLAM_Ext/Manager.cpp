@@ -494,7 +494,7 @@ G(2) = G(2) + delta;
 gz = gz/2./delta;
 for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",gz(i,j)); } cout << endl;}
 
-exit(1);
+//exit(1);
 #endif
 
 
@@ -1395,20 +1395,35 @@ void Manager::InitialiseLonePairEnergy( Cell& C )
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
-		{	
+		{
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+			lp->lp_real_position_integral = this->man_lp_matrix_h.real_position_integral( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );	// Set realspace position integrals
+
 			// Setting Temporal h_matrix zeroes
-			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp.setZero();
+			lp->lp_h_matrix_tmp.setZero();
 
 			// Setting Onsite LonePair Model Parameter Lambda
-			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(1,1) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
-			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(2,2) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
-			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(3,3) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+			lp->lp_h_matrix_tmp(1,1) = lp->lp_lambda;
+			lp->lp_h_matrix_tmp(2,2) = lp->lp_lambda;
+			lp->lp_h_matrix_tmp(3,3) = lp->lp_lambda;
+
+			// Set Ground State
+
 		}
 	}
 } 
 
-void Manager::InitialiseLonePairDerivative( Cell& C ) {}
-void Manager::InitialiseSCF() { this->man_vec.clear(); }	// Clear man_vec "Manager_Vector"
+void Manager::InitialiseLonePairDerivative( Cell& C )
+{
+
+
+}
+
+void Manager::InitialiseSCF()
+{
+	this->man_vec.clear(); 	// Clear man_vec "Manager_Vector"
+
+}
 
 bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
@@ -1528,6 +1543,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 	double lp_cf[4];
 	double factor;		// Multiplication Factor ... controls species charges + etcs.
 	double partial_e;	// Partial energy when 'i' is non-LP species and 'j' is LP density
+	double real_pos[3];
 	Eigen::Vector3d Rij;
 
 	/* if 'lone' comes to the place 'i'    : compute h matrix 
@@ -1606,12 +1622,16 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 	if( type_i == "shel" && type_j == "lone" )	// Shell (CSL) ----> LonePairD (PI)
 	{
+		printf(" FLAG ____ 1 \n");
+
 		// Get 'j' lone pair cation & its eigenvectors of the ground-state
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
 		lp_cf[0] = lp->lp_eigensolver.eigenvectors()(0,lp->lp_gs_index).real();	// s
 		lp_cf[1] = lp->lp_eigensolver.eigenvectors()(1,lp->lp_gs_index).real();	// px
 		lp_cf[2] = lp->lp_eigensolver.eigenvectors()(2,lp->lp_gs_index).real();	// py
 		lp_cf[3] = lp->lp_eigensolver.eigenvectors()(3,lp->lp_gs_index).real();	// pz
+
+		printf(" FLAG ____ 2 \n");
 
 		// <1> Core W.R.T LP Density 
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
@@ -1670,36 +1690,42 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// <3> LP(i) Density vs LP(j) Density
 
-		// 3.A Monopolar Term
+		////	////	////	////	////	////	////	////	////	////	////	////	////	////
+		////	3.A Monopolar Term
+
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i) (CSL) ----> LP(j) (PI)		
 		// Evalulation
 		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 
 		factor = 0.5 * lpi->lp_charge * lpj->lp_charge;
 		this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_h_real_ws[1];
+		////	****************************************************************************************************
 
-		// 3.B Dipolar Term ... depends on the LP density of 'j'th LP
+		////	////	////	////	////	////	////	////	////	////	////	////	////	////
+		////	3.B Dipolar Term ... depends on the LP density of 'j'th LP
+
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i) (CSL) ----> LP(j) (PI)
 		// Evalulation
 		Manager::support_h_matrix_real_derivative( lpi, C.sigma, Rij, this->man_matrix4d_h_real_derivative_ws, this->man_matrix4d_h_real_derivative_out );
-		// decltype(*_out) - type Eigen::Matrix4d[3] where [1-3] - [x],[y],[z]
+		// decltype(*_out) - type Eigen::Matrix4d[3] where [0-2] - [x],[y],[z]
 	 
 		// Get LP(j) Density eigenvectors - Re-use 'lp_cf[0-3]'
 		// factor - Re-use 'factor = 0.5 * lpi->lp_charge * lpj->lp_charge;' above
 
-		// - x
+		real_pos[0] = 2.*lp_cf[0]*lp_cf[1]*lpj->lp_real_position_integral;	// 2 cs cpx	// N.B. 'lp_cf' eigenvectors of 'j' LP Density
+		real_pos[1] = 2.*lp_cf[0]*lp_cf[2]*lpj->lp_real_position_integral;	// 2 cs cpy
+		real_pos[2] = 2.*lp_cf[0]*lp_cf[3]*lpj->lp_real_position_integral;	// 2 cs cpz
 
-		// - y
-
-		// - z
-
-		for(int i=0;i<4;i++)
-		{	for(int j=i;j<4;j++)
+		for(int ii=0;ii<4;ii++)
+		{	for(int jj=ii;jj<4;jj++)
 			{
+				this->LPLP_H_Real[i][j](ii,jj) += factor * (  real_pos[0] * this->man_matrix4d_h_real_derivative_out[0](ii,jj)	
+									    + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1](ii,jj)
+									    + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2](ii,jj) );
+				// RealPos Sign Need Extra Attention
 			}
 		}
-
-
+		////	****************************************************************************************************
 	}
 
 
@@ -1795,6 +1821,11 @@ void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eige
 			C.mono_real_energy += 0.5*(Qi*Qj)/Rij.norm() * erfc(Rij.norm()/C.sigma) * C.TO_EV;
 		}
 	}
+
+
+	Manager::set_h_matrix_real( C, i, j, TransVector );
+	//std::cout << "FLAG - 1\n";
+
 }
 
 void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )

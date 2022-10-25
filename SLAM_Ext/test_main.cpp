@@ -19,7 +19,6 @@ int main()
 
 	// This has to be called after StrainDerivatives are ready
 	c.CalcLatticeDerivative();
-
 	c.ShowEnergyDerivative();
 
 

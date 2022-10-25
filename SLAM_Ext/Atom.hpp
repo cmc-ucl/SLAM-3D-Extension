@@ -195,24 +195,15 @@ private:
 	int lp_gs_index;		// Ground State Index		// This variable is going to be set by manager class member function
 	Eigen::EigenSolver<Eigen::Matrix4d> lp_eigensolver;	// EigenSolver itself contains evals/evecs ... accessed by .eigenvalues() / .eigenvectors() // elements of vectors and matrices with type of std::complex<double?>
 	/*
-		! Solve EigenSystem       : this->lp_eigensolver.compute( $TARGE_MATRIX(SYSTEM) , compute_eigenvectors = true );
+	! Solve EigenSystem       : this->lp_eigensolver.compute( $TARGE_MATRIX(SYSTEM) , compute_eigenvectors = true );
 
-		! Access Computed Results : this->lp_eigensolver.eigenvalues()[i].real() ...    real part of the 'i'th eigenvalue
+	! Access Computed Results : this->lp_eigensolver.eigenvalues()[i].real() ...    real part of the 'i'th eigenvalue
 
-		!			    this->lp_eigensolver.eigenvectors()(i,j).real() ... real part of the (i,j)th eigenvector
-
-// Below should be implemented as the class internal method
-cout << "Get Min index" << endl;
-std::vector<double> evals;
-int min_idx;
-for(int i=0;i<3;i++)
-{       evals.push_back(es.eigenvalues()(i).real());
-}
-min_idx = std::min_element(evals.begin(),evals.end()) - evals.begin();
-cout << min_idx << endl;
+	!			    this->lp_eigensolver.eigenvectors()(i,j).real() ... real part of the (i,j)th eigenvector
 	*/
 
 	Eigen::Matrix4d lp_h_matrix;			// Lone pair Hamiltonian Matrix;
+
 	Eigen::Matrix4d lp_h_matrix_tmp;
 	Eigen::Matrix4d lp_h_matrix_derivatives[3];	// 1,2,3 for 'x', 'y', 'z';
 	
@@ -226,7 +217,7 @@ cout << min_idx << endl;
 	std::vector<double> lp_r_p_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
 							// Convention ... for a range with knots : lp_r[i] ~ lp_r[i+1]
 							// a,b,c,d : ..[0-3][i]
-	double real_position_integral;
+	double lp_real_position_integral;			// Realspace position integral saving point
 
 public:
 		
@@ -351,6 +342,21 @@ public:
 	virtual void UpdateDerivativeInternal( const Eigen::Matrix3d& lattice_matrix )
 	{
 		Atom::UpdateDerivativeInternal( lattice_matrix );	// This only updates Atom private : Eigen::Vector3d cart_gd_int , i.e., internal derivative
+	}
+
+	////	////	////	////	LP Features
+	void GetEigenSystem()
+	{
+		std::vector<double> es_ws;
+
+		// Copy prepared ('lp_h_matrix_tmp') ---> lp_h_matrix
+		this->lp_h_matrix = this->lp_h_matrix_tmp;
+		// Diagonalise
+		this->lp_eigensolver.compute(this->lp_h_matrix,true);	// 'true' for returning eigenvectors;
+
+		// Get the GroundState
+		for(int i=0;i<4;i++) { es_ws.push_back(this->lp_eigensolver.eigenvalues()(i).real()); }
+		this->lp_gs_index  = std::min_element(es_ws.begin(),es_ws.end()) - es_ws.begin();
 	}
 
 	virtual ~LonePair()
