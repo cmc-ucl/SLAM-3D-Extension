@@ -345,6 +345,7 @@ public:
 	}
 
 	////	////	////	////	LP Features
+
 	void GetEigenSystem()
 	{
 		std::vector<double> es_ws;
@@ -358,6 +359,8 @@ public:
 		for(int i=0;i<4;i++) { es_ws.push_back(this->lp_eigensolver.eigenvalues()(i).real()); }
 		this->lp_gs_index  = std::min_element(es_ws.begin(),es_ws.end()) - es_ws.begin();
 	}
+
+	int GetGSIndex() { return this->lp_gs_index; }
 
 	virtual ~LonePair()
 	{

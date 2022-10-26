@@ -1390,50 +1390,67 @@ void Manager::StrainDerivativeReci( Cell& C, const int i, const int j, const Eig
 
 ////	////	////	////	////	////	////
 
-void Manager::InitialiseLonePairEnergy( Cell& C )
+void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
 {
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
 		{
-			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
-			lp->lp_real_position_integral = this->man_lp_matrix_h.real_position_integral( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );	// Set realspace position integrals
-
-			// Setting Temporal h_matrix zeroes
-			lp->lp_h_matrix_tmp.setZero();
-
-			// Setting Onsite LonePair Model Parameter Lambda
-			lp->lp_h_matrix_tmp(1,1) = lp->lp_lambda;
-			lp->lp_h_matrix_tmp(2,2) = lp->lp_lambda;
-			lp->lp_h_matrix_tmp(3,3) = lp->lp_lambda;
-
-			// Set Ground State
 
 		}
 	}
 } 
 
-void Manager::InitialiseLonePairDerivative( Cell& C )
+void Manager::InitialiseLonePairCalculation_Derivatives( Cell& C )
 {
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )
+		{
 
-
+		}
+	}
 }
 
-void Manager::InitialiseSCF()
+void Manager::InitialiseSCF( Cell& C )
 {
-	this->man_vec.clear(); 	// Clear man_vec "Manager_Vector"
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )	
+		{
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+			lp->lp_real_position_integral = this->man_lp_matrix_h.real_position_integral( lp->lp_r, lp->lp_r_s_function, lp->lp_r_p_function );	// set realspace position integrals ... <s|rx|x> = <s|ry|y> = <s|rz|z>
 
+			// Setting Temporal h_matrix zeroes
+			lp->lp_h_matrix_tmp.setZero();
+			// Setting Onsite LonePair Model Parameter Lambda
+			lp->lp_h_matrix_tmp(1,1) = lp->lp_lambda;
+			lp->lp_h_matrix_tmp(2,2) = lp->lp_lambda;
+			lp->lp_h_matrix_tmp(3,3) = lp->lp_lambda;
+			// Get EigenValues / EigenVectors
+			lp->GetEigenSystem();
+			/*
+				Basically, what it does, setting the temporal matrices 'lp_h_matrix_tmp' of LonePair instance with the lp_lambda parameter only, and find the eigensyste.
+
+				Here, the ground state eigenvalue will be '0' consisting of a pure 's' state, and the rests are with eigenvalue of Lambda(positive) formed of px/py/pz states
+
+				The memberfunction 'GetEigenSystem' will also set the groundstate, saved in a member variable, 'lp->lp_gs_index'
+			*/
+		}
+	}
+
+	this->man_scf_vec.clear(); 	// Clear man_scf_vec "Manager_Vector" ... man_scf_vec.size() = 0
 }
 
 bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
-	if( this->man_vec.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
+	if( this->man_scf_vec.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
 	{	return false;
 	}
 	else	// IF IS THE CYCLES AFTHER THE FIRST
-	{	if( fabs(this->man_vec[this->man_vec.size()-1] - this->man_vec[this->man_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
+	{	if( fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
 		else
-		{ 	//this->man_vec.claer();
+		{ 	//this->man_scf_vec.claer();
 			return true; 
 		}
 	}
@@ -1467,7 +1484,7 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 			lp_scf_sum += static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(static_cast<LonePair*>(C.AtomList[i])->lp_gs_index).real();
 		}
 	}
-	this->man_vec.push_back(lp_scf_sum);	// Logging CycSum
+	this->man_scf_vec.push_back(lp_scf_sum);	// Logging CycSum
 }
 
 ////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
@@ -1622,16 +1639,12 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 	if( type_i == "shel" && type_j == "lone" )	// Shell (CSL) ----> LonePairD (PI)
 	{
-		printf(" FLAG ____ 1 \n");
-
 		// Get 'j' lone pair cation & its eigenvectors of the ground-state
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[j]);
 		lp_cf[0] = lp->lp_eigensolver.eigenvectors()(0,lp->lp_gs_index).real();	// s
 		lp_cf[1] = lp->lp_eigensolver.eigenvectors()(1,lp->lp_gs_index).real();	// px
 		lp_cf[2] = lp->lp_eigensolver.eigenvectors()(2,lp->lp_gs_index).real();	// py
 		lp_cf[3] = lp->lp_eigensolver.eigenvectors()(3,lp->lp_gs_index).real();	// pz
-
-		printf(" FLAG ____ 2 \n");
 
 		// <1> Core W.R.T LP Density 
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
@@ -1728,7 +1741,6 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		////	****************************************************************************************************
 	}
 
-
 	return;
 }
 
@@ -1823,7 +1835,7 @@ void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eige
 	}
 
 
-	Manager::set_h_matrix_real( C, i, j, TransVector );
+	Manager::set_h_matrix_real( C, i, j, TransVector );	// Accumulating LonePair <---> LonePair / Core / Shell Interactions; i.e., setting up the LonePair Hamiltonian Matrices
 	//std::cout << "FLAG - 1\n";
 
 }

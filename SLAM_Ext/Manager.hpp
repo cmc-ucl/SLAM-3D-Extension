@@ -15,11 +15,6 @@
 
 class Manager // Interaction Manager
 {
-
-std::vector<double> man_vec;
-LonePairMatrix_H man_lp_matrix_h;	// LonePairMatrix_H : Instance ... managing solving integration tools
-
-
 ////	////	////	////	////	////	////	////
 // lp - pc (point charge)
 Eigen::Matrix4d real_lp_h_pc[MX_C][MX_C];
@@ -75,6 +70,10 @@ Eigen::Matrix4d man_matrix4d_h_real_derivative2_ws[9];		// Workspace H matrix re
 Eigen::Matrix4d man_matrix4d_h_real_derivative2_out[9];
 
 
+
+
+
+
 /* 
 	Storage for H Matrix (E) - LP vs PointCharge Interaction (core/shell/lp core)
 	Saving Interaction of a lone pair density (in the central sublattice) w.r.t. surrounding classical entities 
@@ -89,6 +88,8 @@ Eigen::Matrix4d LPLP_H_Real_y[MX_C][MX_C];
 Eigen::Matrix4d LPLP_H_Real_z[MX_C][MX_C];
 Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
 
+std::vector<double> man_scf_vec;		// For the Use of SCF
+LonePairMatrix_H man_lp_matrix_h;	// LonePairMatrix_H : Instance ... managing solving integration tools
 
 public:
 
@@ -113,10 +114,10 @@ void StrainDerivativeSelf( Cell& C, const int i, const int j, const Eigen::Vecto
 void StrainDerivativeReci( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 
 //
-void InitialiseLonePairEnergy( Cell& C );
-void InitialiseLonePairDerivative( Cell& C );
+void InitialiseLonePairCalculation_Energy( Cell& C );
+void InitialiseLonePairCalculation_Derivatives( Cell& C );
 
-void InitialiseSCF();
+void InitialiseSCF( Cell& C );
 bool IsSCFDone( const double tol );
 
 void GetLonePairGroundState( Cell& C );

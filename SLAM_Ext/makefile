@@ -12,13 +12,13 @@ slam_ext.x : test_main.o Cell.o Manager.o Atom.hpp LonePairMatrix.o Integral_lib
 	$(CC) -O3 -o slam_ext.x test_main.o Cell.o Manager.o LonePairMatrix.o Integral_lib.o 				# iMac
 
 Cell.o : Cell.cpp Cell.hpp Atom.hpp Manager.hpp
-	$(CC) -c Cell.cpp
+	$(CC) -O3 -c Cell.cpp
 
 Manager.o : Manager.cpp Manager.hpp
-	$(CC) -c Manager.cpp
+	$(CC) -O3 -c Manager.cpp
 
 test_main.o : test_main.cpp
-	$(CC) -c test_main.cpp
+	$(CC) -O3 -c test_main.cpp
 
 LonePairMatrix.o : LonePairMatrix.cpp LonePairMatrix.hpp Integral_lib.hpp
 	$(CC) -O3 -c LonePairMatrix.cpp 

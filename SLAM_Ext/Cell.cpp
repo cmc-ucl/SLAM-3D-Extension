@@ -499,24 +499,37 @@ using std::cout, std::endl;
 	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
 	/* Initiate SCF Cycle */
-	manager.InitialiseSCF();
+	manager.InitialiseSCF(*this);
 
 	// SCF Loop 'n'
 	for(int n=0;n<this->scf_iter_max;n++)
 	{
-		manager.InitialiseLonePairEnergy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
+		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
 cout << "********************************************************\n";
 cout << "SCF CNT : " << n;
 cout << " / is first scf : " << is_first_scf << endl;
-printf("hkl indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
+printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
 printf("rcut        : %12.6lf\n",this->rcut);
+printf("ihkl indices : %d\t%d\t%d\n",this->ih_max,this->ik_max,this->il_max);
+printf("gcut        : %12.6lf\n",this->gcut);
+
 		auto start = std::chrono::system_clock::now();
 
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
 			{	
+
+			auto ijloop_sta = std::chrono::system_clock::now();
+
 				printf(" ######### PAIR : %d \t %d\n", i, j);
+	
+				/// Debugging
+
+				//if( this->AtomList[i]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[i])->lp_gs_index << endl; exit(1); }
+				//if( this->AtomList[j]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[j])->lp_gs_index << endl; exit(1); }
+
+				/// Debugging End
 
 				for(int h = -this->h_max ; h <= this->h_max ; h++)
 				{	for(int k = -this->k_max ; k <= this->k_max ; k++)
@@ -545,12 +558,19 @@ printf("rcut        : %12.6lf\n",this->rcut);
 						}// end l
 					}// end k
 				}//end h
+
+			auto ijloop_end = std::chrono::system_clock::now();
+
+			printf("Pair : %d / %d\n",i,j);
+			//std::chrono::duration<double> wtime = end - start;
+			std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
+			cout << wtime.count() << " s\n";
+
 			}// end j
 		}// end i
 
 		cout << " --------- REAL DONE " << endl;
 		auto end = std::chrono::system_clock::now();
-
 		//
 
 		start = std::chrono::system_clock::now();
@@ -638,7 +658,8 @@ void Cell::CalcLonePairCoulombDerivative()
 	Manager manager;			// Managing Interactions + Calculations
 	Eigen::Vector3d trans;			// Lattice Translation Vector
 	Eigen::Vector3d delta_rij, delta_r;	// Interatomic Diatance
-	manager.InitialiseLonePairDerivative(*this);
+
+	manager.InitialiseLonePairCalculation_Derivatives(*this);
 
 	auto start = std::chrono::system_clock::now();
 
