@@ -299,6 +299,10 @@ v << 1,2,3;
 
 double g = 0.05;
 
+
+if( lp != nullptr )
+{
+
 cout << "G Vector" << endl;
 //h_tmp_d2[0][2](0,1) = this->man_lp_matrix_h.real_sx_grad2_xz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][2] - XZ, (0,1) sx
 
@@ -496,7 +500,7 @@ for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",gz(i,j)); } cout 
 
 //exit(1);
 #endif
-
+} // if( lp != nullptr )
 
 
 	// Method Actual...
@@ -1390,28 +1394,6 @@ void Manager::StrainDerivativeReci( Cell& C, const int i, const int j, const Eig
 
 ////	////	////	////	////	////	////
 
-void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
-{
-	for(int i=0;i<C.NumberOfAtoms;i++)
-	{
-		if( C.AtomList[i]->type == "lone" )
-		{
-
-		}
-	}
-} 
-
-void Manager::InitialiseLonePairCalculation_Derivatives( Cell& C )
-{
-	for(int i=0;i<C.NumberOfAtoms;i++)
-	{
-		if( C.AtomList[i]->type == "lone" )
-		{
-
-		}
-	}
-}
-
 void Manager::InitialiseSCF( Cell& C )
 {
 	for(int i=0;i<C.NumberOfAtoms;i++)
@@ -1442,31 +1424,63 @@ void Manager::InitialiseSCF( Cell& C )
 	this->man_scf_vec.clear(); 	// Clear man_scf_vec "Manager_Vector" ... man_scf_vec.size() = 0
 }
 
-bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
+void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
 {
-	if( this->man_scf_vec.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
-	{	return false;
-	}
-	else	// IF IS THE CYCLES AFTHER THE FIRST
-	{	if( fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
-		else
-		{ 	//this->man_scf_vec.claer();
-			return true; 
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{	if( C.AtomList[i]->type == "lone" )
+		{
+			for(int j=0;j<MX_C;j++)
+			{	for(int k=0;k<MX_C;k++)
+				{
+					LPC_H_Real[j][k][0].setZero();	// Interaction with cores + LP cores
+					LPC_H_Real[j][k][1].setZero();	// Interaction with shels
+
+					LPLP_H_Real[j][k].setZero();	// Interaction of LP<--->LP Real
+					LPLP_H_Reci[j][k].setZero();	// Interaction of LP<--->LP Reciprocal
+				}
+			}
 		}
 	}
-}
+	// Method Actual...
+	//C.energy_real_sum_cnt = 0;	//C.energy_reci_sum_cnt = 0;
+	C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
+} 
 
 void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
 {
 	// This Function Assumes "LonePair::Eigen::Matrix4d lp_h_matrix_tmp" is Ready to be diagonalised
-
 	std::vector<double> v(4);	// SPACE FOR HOLDING EIGEN VALUES
 	double lp_scf_sum = 0.;		// TEMOPORALILY HOLDING GROUND STATE ENERGY SUM
 
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
-		{	
+		{
+			std::cout << "---------------- BEFORE Diagonalisation" << std::endl;
+			printf("H matrix ... \n");
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
+			printf("EigenValues  ... \n");
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
+			printf("EigenVectors ... \n");
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
+
+			// Setting Temporal h_matrix zeroes
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp.setZero();
+			// Setting Onsite LonePair Model Parameter Lambda
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(1,1) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(2,2) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(3,3) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
+
+			// SET TMP matrix
+			for(int j=0;j<MX_C;j++)
+			{
+				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPC_H_Real[i][j][0];
+				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPC_H_Real[i][j][1];
+
+				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPLP_H_Real[i][j];
+				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPLP_H_Reci[i][j];
+			}
+	
 			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix = static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp;
 			// Copy lp_h_matrix_tmp -> (into) lp_h_matrix ... dialgonalisation target
 			static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.compute(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix,true);
@@ -1482,9 +1496,38 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 			static_cast<LonePair*>(C.AtomList[i])->lp_gs_index = std::min_element(v.begin(),v.end()) - v.begin();
 			
 			lp_scf_sum += static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(static_cast<LonePair*>(C.AtomList[i])->lp_gs_index).real();
+
+			std::cout << "---------------- AFTER Diagonalisation" << std::endl;
+			printf("H matrix ... \n");
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
+			printf("EigenValues  ... \n");
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
+			printf("EigenVectors ... \n");
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
+
 		}
 	}
 	this->man_scf_vec.push_back(lp_scf_sum);	// Logging CycSum
+
+	printf("Accumulated scf energies\n");
+	for(int i=0;i<this->man_scf_vec.size();i++)
+	{
+		printf("%d - %20.12lf\n",i+1,this->man_scf_vec[i]);
+	}
+}
+
+bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
+{
+	if( this->man_scf_vec.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
+	{	return false;
+	}
+	else	// IF IS THE CYCLES AFTHER THE FIRST
+	{	if( fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
+		else
+		{ 	//this->man_scf_vec.claer();
+			return true; 
+		}
+	}
 }
 
 ////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
@@ -1614,6 +1657,9 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		// Calculate Energy Contribution by the given LP density in the periodic image and a point charge in the central sublattice
 		partial_e = 0.;
 		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+
+	// Save LonePair Density Energy ...
+	C.lp_real_energy += partial_e;
 	}
 
 	if( type_i == "lone" && type_j == "shel" )	// LonePairD (CSL) ----> Shell (PI)
@@ -1658,6 +1704,8 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		partial_e = 0.;
 		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
 		
+	// Save LonePair Density Energy ...
+	C.lp_real_energy += partial_e;
 
 		// <2> Shel W.R.T LP Density
 		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - ( C.AtomList[j]->cart + TransVector );
@@ -1670,6 +1718,9 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		// Calculation Energy Contribution by the given LP density in the periodic image and the shel in the central sublattice
 		partial_e = 0.;
 		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+
+	// Save LonePair Density Energy ...
+	C.lp_real_energy += partial_e;
 	}
 
 	if( type_i == "lone" && type_j == "lone" )	// i == j will not get caught when h=k=l=0 by 'if' of its wrapper
@@ -1700,6 +1751,9 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		// Calculation Energy Contribution by the given LP density in the periodic image and the LP core in the central sublattice
 		partial_e = 0.;
 		for(int i=0;i<4;i++){ for(int j=0;j<4;j++) { partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+
+	// Save LonePair Density Energy ...
+	C.lp_real_energy += partial_e;
 
 		// <3> LP(i) Density vs LP(j) Density
 
@@ -1946,6 +2000,19 @@ void Manager::CoulombLonePairReci( Cell& C, const int i, const int j, const Eige
 ////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
 
 ////	LonePair_Derivative
+
+////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
+
+void Manager::InitialiseLonePairCalculation_Derivatives( Cell& C )
+{
+	for(int i=0;i<C.NumberOfAtoms;i++)
+	{
+		if( C.AtomList[i]->type == "lone" )
+		{
+
+		}
+	}
+}
 
 void Manager::CoulombLonePairDerivativeReal( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
 {

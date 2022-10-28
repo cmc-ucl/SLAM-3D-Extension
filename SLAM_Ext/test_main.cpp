@@ -13,7 +13,7 @@ int main()
 	c.CalcCoulombDerivative();
 
 	// Calculate LonePair Contribution
-	c.CalcLonePairCoulombEnergy();
+	c.CalcLonePairCoulombEnergy();			// This is not globally working when there are now LP cations ... need modification !!! 27 Oct 2022
 	c.CalcLonePairCoulombDerivative();
 
 

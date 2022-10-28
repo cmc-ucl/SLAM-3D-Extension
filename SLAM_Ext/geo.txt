@@ -1,17 +1,24 @@
+#cell
+#4.1	4.5	4.2	91.	54.	60.
 cell
-4.3	4.3	3.2	91.	54.	60.
+3.0	3.0	4.0	90	90	90
 
 #lattice_vector
 #.3251    0.0000    0.0000
 #.1541    5.7232    0.0000
 #.8851   -1.1551    2.3223
+#atom	0.01	0.00	0.50	O	shel	0.1	-0.09	0.51
+#atom	0.50	0.50	0.00	O	shel
+#atom	0.00	0.50	0.49	Pb	lone
+#atom	0.50	0.48	0.55	Pb	lone
 
-atom	0.01	0.00	0.50	O	shel	0.1	-0.09	0.51
-atom	0.50	0.50	0.00	O	shel
-atom	0.00	0.50	0.49	Pb	lone
-atom	0.50	0.48	0.55	Pb	lone
+atom	0.5	0.5	0.25 	O	core
+atom 	0.5	0.5	0.60	Pb	lone
 
-species Pb	lone	2.00	0.00	14.5
-species Ba	core	2.00
-species	Mg	shel	1.8	+0.2	100	999.
-species	O	shel 	1.0 	-3.0 	100 	999.
+#atom	0.0	0.75	0.75	O	core
+#atom	0.25	0.25	0.00	Pb	lone
+
+
+species Pb	lone	+3.00	 -1.00	 14.5
+species O	core	-2.00
+#species	O	shel 	1.0 	-3.0 	100 	999.

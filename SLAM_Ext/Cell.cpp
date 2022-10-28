@@ -488,7 +488,8 @@ void Cell::CalcCoulombDerivative()
 
 void Cell::CalcLonePairCoulombEnergy()
 {
-using std::cout, std::endl;
+using std::cout;
+using std::endl;
 
 	bool is_first_scf = true;
 	bool is_scf_done = false;
@@ -501,18 +502,44 @@ using std::cout, std::endl;
 	/* Initiate SCF Cycle */
 	manager.InitialiseSCF(*this);
 
+printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
+printf("rcut        : %12.6lf\n",this->rcut);
+printf("ihkl indices : %d\t%d\t%d\n",this->ih_max,this->ik_max,this->il_max);
+printf("gcut        : %12.6lf\n",this->gcut);
+printf("Lattice Matrix\n");
+cout << "             a           b          c " << endl;
+printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","x",this->lattice_matrix(0,0),this->lattice_matrix(0,1),this->lattice_matrix(0,2));
+printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","y",this->lattice_matrix(1,0),this->lattice_matrix(1,1),this->lattice_matrix(1,2));
+printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","z",this->lattice_matrix(2,0),this->lattice_matrix(2,1),this->lattice_matrix(2,2));
+cout << endl;
+
 	// SCF Loop 'n'
 	for(int n=0;n<this->scf_iter_max;n++)
 	{
 		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
 cout << "********************************************************\n";
-cout << "SCF CNT : " << n;
-cout << " / is first scf : " << is_first_scf << endl;
-printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
-printf("rcut        : %12.6lf\n",this->rcut);
-printf("ihkl indices : %d\t%d\t%d\n",this->ih_max,this->ik_max,this->il_max);
-printf("gcut        : %12.6lf\n",this->gcut);
+cout << "SCF CNT : " << n << " / is first scf : " << is_first_scf << endl;
+cout << endl;
+
+		
+		/// LONE PAIR DENSITY PROFILE
+		std::cout << "LONE PAIR INFO TMP--------------------------------------------" << std::endl;
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	if( this->AtomList[i]->type == "lone" )
+			{
+				std::cout << " Atom[" << i << "]" << std::endl;
+				printf("GS( %d ) - Eval Evec : %12.6lf\t%12.6lf\t%12.6lf\t%12.6lf\t%12.6lf\n",
+					static_cast<LonePair*>(this->AtomList[i])->lp_gs_index,
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(0,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(1,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(2,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(3,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real());
+			}
+		}
+		std::cout << "--------------------------------------------------------------" << std::endl;
+				
 
 		auto start = std::chrono::system_clock::now();
 
@@ -523,7 +550,15 @@ printf("gcut        : %12.6lf\n",this->gcut);
 			auto ijloop_sta = std::chrono::system_clock::now();
 
 				printf(" ######### PAIR : %d \t %d\n", i, j);
+				/*
 	
+				if( this->AtomList[j]->type == "lone" )
+				{	cout << "Eval of " << j  << " LP" << endl;
+					cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvalues() << endl;
+					cout << "Evec" << endl;
+					cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvectors() << endl;
+				}
+				*/
 				/// Debugging
 
 				//if( this->AtomList[i]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[i])->lp_gs_index << endl; exit(1); }
@@ -561,7 +596,6 @@ printf("gcut        : %12.6lf\n",this->gcut);
 
 			auto ijloop_end = std::chrono::system_clock::now();
 
-			printf("Pair : %d / %d\n",i,j);
 			//std::chrono::duration<double> wtime = end - start;
 			std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
 			cout << wtime.count() << " s\n";
@@ -610,6 +644,17 @@ printf("gcut        : %12.6lf\n",this->gcut);
 		// Diagonalisations : Determine GroundStates of LonePairs
 		manager.GetLonePairGroundState(*this);
 
+		std::cout << "----------------- AFTER GroundState Calculation\n";
+		printf("lp_real_energy : %20.12lf\n",this->lp_real_energy);
+
+		double tmp = 0.;//Get Eval;
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	if( this->AtomList[i]->type == "lone" )
+			{	tmp += static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real();
+			}
+		}
+		printf("lp_eval        : %20.12lf\n",tmp);
+
 /*
 // Check Routine
 for(int k=0;k<this->NumberOfAtoms;k++)
@@ -632,7 +677,7 @@ for(int k=0;k<this->NumberOfAtoms;k++)
 	}
 }
 */
-		if( manager.IsSCFDone(LONEPAIR_SCF_TOL) ) { break; }
+		if( manager.IsSCFDone( LONEPAIR_SCF_TOL) ) { break; }
 
 		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )

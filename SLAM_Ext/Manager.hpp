@@ -83,9 +83,9 @@ Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with 
 
 // Storage for H Matrix (E) - LP vs LP
 Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];	// Save Monopolar Contribution LP <---> LP
-Eigen::Matrix4d LPLP_H_Real_x[MX_C][MX_C];	// Save Dipolar   Contribution LP <---> LP
-Eigen::Matrix4d LPLP_H_Real_y[MX_C][MX_C];
-Eigen::Matrix4d LPLP_H_Real_z[MX_C][MX_C];
+//Eigen::Matrix4d LPLP_H_Real_x[MX_C][MX_C];	// Save Dipolar   Contribution LP <---> LP
+//Eigen::Matrix4d LPLP_H_Real_y[MX_C][MX_C];
+//Eigen::Matrix4d LPLP_H_Real_z[MX_C][MX_C];
 Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
 
 std::vector<double> man_scf_vec;		// For the Use of SCF
