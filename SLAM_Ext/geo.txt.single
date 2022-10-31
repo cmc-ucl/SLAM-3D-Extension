@@ -12,18 +12,12 @@ cell
 #atom	0.00	0.50	0.49	Pb	lone
 #atom	0.50	0.48	0.55	Pb	lone
 
-#atom	0.25	0.25	0.25 	O	core
-#atom 	0.25	0.25	0.60	Pb	lone
-#atom	0.75	0.75	0.25 	O	core
-#atom 	0.75	0.75	0.60	Pb	lone
+atom	0.5	0.5	0.25 	O	core
+atom 	0.5	0.5	0.60	Pb	lone
 
 #atom	0.0	0.75	0.75	O	core
 #atom	0.25	0.25	0.00	Pb	lone
 
-atom	0.21	0.27	0.25 	O	core
-atom 	0.24	0.23	0.60	Pb	lone
-atom	0.75	0.75	0.15 	O	core
-atom 	0.63	0.75	0.50	Pb	lone
 
 species Pb	lone	+3.00	 -1.00	 14.5
 species O	core	-2.00

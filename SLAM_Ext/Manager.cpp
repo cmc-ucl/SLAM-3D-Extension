@@ -1456,7 +1456,7 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 	{
 		if( C.AtomList[i]->type == "lone" )
 		{
-			std::cout << "---------------- BEFORE Diagonalisation" << std::endl;
+			std::cout << "---------------- BEFORE Diagonalisation LP label : " << i << std::endl;
 			printf("H matrix ... \n");
 			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
 			printf("EigenValues  ... \n");
@@ -1497,7 +1497,7 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 			
 			lp_scf_sum += static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(static_cast<LonePair*>(C.AtomList[i])->lp_gs_index).real();
 
-			std::cout << "---------------- AFTER Diagonalisation" << std::endl;
+			std::cout << "---------------- AFTER Diagonalisation LP label : " << i << std::endl;
 			printf("H matrix ... \n");
 			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
 			printf("EigenValues  ... \n");
