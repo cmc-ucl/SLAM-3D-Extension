@@ -1,7 +1,7 @@
 #cell
-#4.3	4.3	3.2	91.	54.	60.
+#4.3	4.5	3.4	90	54	60
 
-lattice_vector
+lattice_vector			# TESTING FDM LATTICE VECTORS
 4.3251    0.0000    0.0000
 4.1541    5.7232    0.0000
 1.8851   -1.1551    2.3223
@@ -10,31 +10,28 @@ lattice_vector
 #MgO
 #System
 
-atom 	0.05 	0.00 	0.000 	Mg	core   
-atom 	0.49 	0.52 	0.025 	Mg	core   
-atom 	0.50 	0.00 	0.500 	Mg	core
-atom 	0.00 	0.52 	0.500 	Mg	core
-atom 	0.50 	0.50 	0.500 	O 	core
-atom 	0.50 	0.00 	-0.04 	O 	core   
-atom 	0.10 	0.50 	0.320 	O 	core   
-atom 	0.00 	0.00 	0.500 	O 	core   
-
-
-
+atom  0.05  0.00  0.00  Mg  core
+atom  0.49  0.52  0.01  Mg  core
+atom  0.50  0.00  0.50  Mg  core
+atom  0.00  0.52  0.50  Mg  core
+atom  0.50  0.50  0.50  O   shel
+atom  0.50  0.00 -0.04  O   shel  0.50 0.00 -0.03
+atom  0.10  0.50  0.32  O   shel  0.10 0.48 0.300
+atom  0.00  0.00  0.50  O   shel  0.00 0.08 0.500
 
 
 species	Mg	core	2.0	
-species	O	core   -2.0 	
+species O       shel    1.0     -3.0    0.00	0.00	
 
-#species	Mg	core	+2
-#species O  core -2
+#species	Mg	core	2
+#species 	O  	core 	-2
 
 
 
 
 
 #Mg    core	0.05    0.00    0.000
-#Mg    core	0.49    0.52    0.025
+#Mg    core	0.49    0.52    0.010
 #Mg    core	0.50    0.00    0.500
 #Mg    core	0.00    0.52    0.500
 #O     core	0.50    0.50    0.500  
@@ -44,4 +41,4 @@ species	O	core   -2.0
 #O     core	0.10    0.50    0.320  
 #O     shel	0.10    0.48    0.300  
 #O     core	0.00    0.00    0.500  
-#O     shel	0.00    0.00    0.500  
+#O     shel	0.00    0.08    0.500  
