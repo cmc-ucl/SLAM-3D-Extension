@@ -269,7 +269,8 @@ void Manager::InitialiseEnergy( Cell& C )
 
 
 #ifdef DEV_G_SPACE
-using std::cout, std::endl;
+using std::cout;
+using std::endl;
 LonePair* lp = nullptr;
 int lp_id;
 

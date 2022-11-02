@@ -15,6 +15,8 @@
 
 #define GRID_W 2048		// Integral grid dense level 10^1
 
+#define MIN(a,b)        ((a)>=(b)?(b):(a))
+
 class LonePairMatrix
 {
 public:

@@ -1017,8 +1017,8 @@ void Cell::ShowEnergyDerivative() const
 
 void Cell::Finalise() const
 {
-
-using std::cout, std::endl;
+using std::cout;
+using std::endl;
 
 	cout << "---------------------------------------------------------------------------------------------------------\n";
 	cout << " Job Finished at                  : " << currentDateTime() << endl;
