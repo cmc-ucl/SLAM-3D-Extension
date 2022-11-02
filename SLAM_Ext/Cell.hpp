@@ -10,7 +10,9 @@
 
 #define DEF_MAX_ATOM_NUMBER 1024
 #define DEF_PERIODIC_SUM_ACCURACY 10E-18
-#define DEF_PERIODIC_SUM_WEIGHT   0.0123
+//#define DEF_PERIODIC_SUM_WEIGHT   1.234
+#define DEF_PERIODIC_SUM_WEIGHT   1.123
+//#define DEF_PERIODIC_SUM_WEIGHT   0.0123
 
 class Cell
 {
@@ -49,9 +51,19 @@ double rcut,gcut;						// Cutoff tolerances
 int h_max,k_max,l_max;
 int ih_max,ik_max,il_max;
 
+// LP PERIODIC SUM PARAMETERS
+double lp_sigma;						// Sigma
+double lp_rcut,lp_gcut;						// Cutoff tolerances
+int lp_h_max,lp_k_max,lp_l_max;
+int lp_ih_max,lp_ik_max,lp_il_max;
+
 // Monopole Energy - i.e., point charge - e.g., core, shell, lone pair core ...
 double mono_real_energy, mono_reci_energy, mono_reci_self_energy;
 double mono_total_energy;
+
+// LonePair Energy Contributions ... Remember some terms below only contain the half of the contributions
+double lp_real_energy, lp_reci_energy, lp_reci_self_energy;
+double lp_total_energy;
 
 // LONEPAIR__ Calculatiosn LonePiar involved
 double lp_scf_energy_prev;				// SCF usage ... logging prev scf energy of lone pairs

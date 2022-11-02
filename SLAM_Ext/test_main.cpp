@@ -1,5 +1,5 @@
 #include <iostream>
-#include "cell.hpp"
+#include "Cell.hpp"
 
 #define TARGET_INPUT "geo.txt"
 
@@ -13,13 +13,12 @@ int main()
 	c.CalcCoulombDerivative();
 
 	// Calculate LonePair Contribution
-	c.CalcLonePairCoulombEnergy();
+	c.CalcLonePairCoulombEnergy();			// This is not globally working when there are now LP cations ... need modification !!! 27 Oct 2022
 	c.CalcLonePairCoulombDerivative();
 
 
 	// This has to be called after StrainDerivatives are ready
 	c.CalcLatticeDerivative();
-
 	c.ShowEnergyDerivative();
 
 

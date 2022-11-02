@@ -1,24 +1,30 @@
+#cell
+#4.1	4.5	4.2	91.	54.	60.
 cell
-4.3	4.3	3.2	91.	54.	60.
+3.0	3.0	4.0	90	90	90
 
-#attice_vector
+#lattice_vector
 #.3251    0.0000    0.0000
 #.1541    5.7232    0.0000
 #.8851   -1.1551    2.3223
+#atom	0.01	0.00	0.50	O	shel	0.1	-0.09	0.51
+#atom	0.50	0.50	0.00	O	shel
+#atom	0.00	0.50	0.49	Pb	lone
+#atom	0.50	0.48	0.55	Pb	lone
 
-atom 	0.05 	0.00 	0.000 	Mg	shel	0.05	0.	-0.15
-atom 	0.49 	0.52 	0.025 	Mg	shel	0.5	0.5	0.025
-atom 	0.50 	0.00 	0.500 	Mg	shel
-atom 	0.00 	0.52 	0.500 	Pb	lone
-#atom 	0.00 	0.52 	0.500 	Ba	core
-atom 	0.50 	0.50 	0.500 	O 	shel
-atom 	0.50 	0.00 	-0.04 	O 	shel   0.5 0.00 -0.03
-atom 	0.10 	0.50 	0.320 	O 	shel   0.1 0.48 0.30
-atom 	0.00 	0.00 	0.500 	O 	shel   # Test displacement at 'x_frac'
+#atom	0.25	0.25	0.25 	O	core
+#atom 	0.25	0.25	0.60	Pb	lone
+#atom	0.75	0.75	0.25 	O	core
+#atom 	0.75	0.75	0.60	Pb	lone
 
+#atom	0.0	0.75	0.75	O	core
+#atom	0.25	0.25	0.00	Pb	lone
 
-#species Pb	lone	3.44	-1.44	14.5
-species Pb	lone	2.00	0.00	14.5
-species Ba	core	2.00
-species	Mg	shel	1.8	+0.2	100	999.
-species	O	shel 	1.0 	-3.0 	100 	999.
+atom	0.21	0.27	0.25 	O	core
+atom 	0.24	0.23	0.60	Pb	lone
+atom	0.75	0.75	0.15 	O	core
+atom 	0.63	0.75	0.50	Pb	lone
+
+species Pb	lone	+3.00	 -1.00	 14.5
+species O	core	-2.00
+#species	O	shel 	1.0 	-3.0 	100 	999.

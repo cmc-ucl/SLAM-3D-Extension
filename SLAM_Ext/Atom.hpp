@@ -194,10 +194,18 @@ private:
 
 	int lp_gs_index;		// Ground State Index		// This variable is going to be set by manager class member function
 	Eigen::EigenSolver<Eigen::Matrix4d> lp_eigensolver;	// EigenSolver itself contains evals/evecs ... accessed by .eigenvalues() / .eigenvectors() // elements of vectors and matrices with type of std::complex<double?>
+	/*
+	! Solve EigenSystem       : this->lp_eigensolver.compute( $TARGE_MATRIX(SYSTEM) , compute_eigenvectors = true );
+
+	! Access Computed Results : this->lp_eigensolver.eigenvalues()[i].real() ...    real part of the 'i'th eigenvalue
+
+	!			    this->lp_eigensolver.eigenvectors()(i,j).real() ... real part of the (i,j)th eigenvector
+	*/
 
 	Eigen::Matrix4d lp_h_matrix;			// Lone pair Hamiltonian Matrix;
+
 	Eigen::Matrix4d lp_h_matrix_tmp;
-	Eigen::Matrix4d lp_h_matrix_derivative[3];	// 1,2,3 for 'x', 'y', 'z';
+	Eigen::Matrix4d lp_h_matrix_derivatives[3];	// 1,2,3 for 'x', 'y', 'z';
 	
 	Eigen::Vector3d lp_gd;
 	Eigen::Vector3d lp_gd_int;			// Gradient on the core by LonePair Density
@@ -209,12 +217,20 @@ private:
 	std::vector<double> lp_r_p_function[4];		// [0-3] : a,b,c and d of ax^3 + bx^2 + cx + d
 							// Convention ... for a range with knots : lp_r[i] ~ lp_r[i+1]
 							// a,b,c,d : ..[0-3][i]
+	double lp_real_position_integral;			// Realspace position integral saving point
 
 public:
 		
 	LonePair( const double frac_x, const double frac_y, const double frac_z, std::string species, std::string type, const Eigen::Vector3d* lattice_vector )
 	: Atom(frac_x,frac_y,frac_z,species,type,lattice_vector)
 	{
+		this->lp_h_matrix.setZero();
+		this->lp_h_matrix_tmp.setZero();
+		for(int i=0;i<3;i++){ this->lp_h_matrix_derivatives[i].setZero(); }
+
+		this->lp_gd.setZero();
+		this->lp_gd_int.setZero();
+
 		std::ifstream fp;
 		std::string str;
 		std::stringstream ss;
@@ -294,14 +310,6 @@ public:
 			std::exit(EXIT_FAILURE);
 		}
 
-		//Confirmed
-		//for(int i=0;i<this->lp_spline_knot_count;i++)
-		//{	printf("%20.6e\n",this->lp_r[i]);	}
-		//for(int i=0;i<this->lp_spline_knot_count-1;i++)
-		//{	printf("%20.6e%20.6e%20.6e%20.6e\n",this->lp_r_s_function[0][i],this->lp_r_s_function[1][i],this->lp_r_s_function[2][i],this->lp_r_s_function[3][i]);	}
-		//for(int i=0;i<this->lp_spline_knot_count-1;i++)
-		//{	printf("%20.6e%20.6e%20.6e%20.6e\n",this->lp_r_p_function[0][i],this->lp_r_p_function[1][i],this->lp_r_p_function[2][i],this->lp_r_p_function[3][i]);	}
-
 	}	// end Constructor
 
 	// VirtualOverriding - must be in the same format
@@ -335,6 +343,24 @@ public:
 	{
 		Atom::UpdateDerivativeInternal( lattice_matrix );	// This only updates Atom private : Eigen::Vector3d cart_gd_int , i.e., internal derivative
 	}
+
+	////	////	////	////	LP Features
+
+	void GetEigenSystem()
+	{
+		std::vector<double> es_ws;
+
+		// Copy prepared ('lp_h_matrix_tmp') ---> lp_h_matrix
+		this->lp_h_matrix = this->lp_h_matrix_tmp;
+		// Diagonalise
+		this->lp_eigensolver.compute(this->lp_h_matrix,true);	// 'true' for returning eigenvectors;
+
+		// Get the GroundState
+		for(int i=0;i<4;i++) { es_ws.push_back(this->lp_eigensolver.eigenvalues()(i).real()); }
+		this->lp_gs_index  = std::min_element(es_ws.begin(),es_ws.end()) - es_ws.begin();
+	}
+
+	int GetGSIndex() { return this->lp_gs_index; }
 
 	virtual ~LonePair()
 	{
