@@ -1,5 +1,5 @@
 #include <iostream>
-#include "cell.hpp"
+#include "Cell.hpp"
 
 #define TARGET_INPUT "geo.txt"
 

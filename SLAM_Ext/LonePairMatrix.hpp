@@ -8,11 +8,12 @@
 #define FHA_TO_FEV_UNIT (EV_UNIT/TO_BOHR_RADII/TO_BOHR_RADII)				// mul Ha/Bohr  -> eV/Angstrom
 #define FFHA_TO_FFEV_UNIT (EV_UNIT/TO_BOHR_RADII/TO_BOHR_RADII/TO_BOHR_RADII)		// mul Ha/Bohr^2-> eV/Angstrom^2
 
-#include <Eigen/Core>
 //#include "Atom.hpp"
+
+#include <Eigen/Core>
 #include "Integral_lib.hpp"
 
-#define GRID_W 2048
+#define GRID_W 2048		// Integral grid dense level 10^1
 
 class LonePairMatrix
 {

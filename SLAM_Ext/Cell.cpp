@@ -9,7 +9,7 @@
 #include <cmath>
 #include <ctime>
 
-//#include "cell.hpp"
+//#include "Cell.hpp"
 #include "Manager.hpp"
 
 std::string currentDateTime()
