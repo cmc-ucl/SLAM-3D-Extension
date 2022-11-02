@@ -9,7 +9,7 @@
 #include <cmath>
 #include <ctime>
 
-//#include "cell.hpp"
+//#include "Cell.hpp"
 #include "Manager.hpp"
 
 std::string currentDateTime()
@@ -488,7 +488,8 @@ void Cell::CalcCoulombDerivative()
 
 void Cell::CalcLonePairCoulombEnergy()
 {
-using std::cout, std::endl;
+using std::cout;
+using std::endl;
 
 	bool is_first_scf = true;
 	bool is_scf_done = false;
@@ -498,21 +499,74 @@ using std::cout, std::endl;
 	Eigen::Vector3d trans;			// Translation Vector
 	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
-	manager.InitialiseSCF();
+	/* Initiate SCF Cycle */
+	manager.InitialiseSCF(*this);
 
+printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
+printf("rcut        : %12.6lf\n",this->rcut);
+printf("ihkl indices : %d\t%d\t%d\n",this->ih_max,this->ik_max,this->il_max);
+printf("gcut        : %12.6lf\n",this->gcut);
+printf("Lattice Matrix\n");
+cout << "             a           b          c " << endl;
+printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","x",this->lattice_matrix(0,0),this->lattice_matrix(0,1),this->lattice_matrix(0,2));
+printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","y",this->lattice_matrix(1,0),this->lattice_matrix(1,1),this->lattice_matrix(1,2));
+printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","z",this->lattice_matrix(2,0),this->lattice_matrix(2,1),this->lattice_matrix(2,2));
+cout << endl;
+
+	// SCF Loop 'n'
 	for(int n=0;n<this->scf_iter_max;n++)
 	{
-		manager.InitialiseLonePairEnergy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
+		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
 cout << "********************************************************\n";
-cout << "SCF CNT : " << n;
-cout << " / is first scf : " << is_first_scf << endl;
+cout << "SCF CNT : " << n << " / is first scf : " << is_first_scf << endl;
+cout << endl;
+
+		
+		/// LONE PAIR DENSITY PROFILE
+		std::cout << "LONE PAIR INFO TMP--------------------------------------------" << std::endl;
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	if( this->AtomList[i]->type == "lone" )
+			{
+				std::cout << " Atom[" << i << "]" << std::endl;
+				printf("GS( %d ) - Eval Evec : %12.6lf\t%12.6lf\t%12.6lf\t%12.6lf\t%12.6lf\n",
+					static_cast<LonePair*>(this->AtomList[i])->lp_gs_index,
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(0,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(1,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(2,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
+					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(3,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real());
+			}
+		}
+		std::cout << "--------------------------------------------------------------" << std::endl;
+				
 
 		auto start = std::chrono::system_clock::now();
 
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
-			{	for(int h = -this->h_max ; h <= this->h_max ; h++)
+			{	
+
+			auto ijloop_sta = std::chrono::system_clock::now();
+
+				printf(" ######### PAIR : %d \t %d\n", i, j);
+				/*
+	
+				if( this->AtomList[j]->type == "lone" )
+				{	cout << "Eval of " << j  << " LP" << endl;
+					cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvalues() << endl;
+					cout << "Evec" << endl;
+					cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvectors() << endl;
+				}
+				*/
+				/// Debugging
+
+				//if( this->AtomList[i]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[i])->lp_gs_index << endl; exit(1); }
+				//if( this->AtomList[j]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[j])->lp_gs_index << endl; exit(1); }
+
+				/// Debugging End
+
+				for(int h = -this->h_max ; h <= this->h_max ; h++)
 				{	for(int k = -this->k_max ; k <= this->k_max ; k++)
 					{	for(int l = -this->l_max ; l <= this->l_max ; l++)
 						{
@@ -520,16 +574,18 @@ cout << " / is first scf : " << is_first_scf << endl;
 							//// START REAL SPACE
 							if( (trans.norm()) < this->rcut )
 							{	
-								if( h == 0 && k == 0 && l == 0 )
+								if( h == 0 && k == 0 && l == 0 )	// within the central sublattice
 								{	
-								    if( i != j )
+								    if( i != j )			// DO NOT directly compute self interaction !!
 								    {
 									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);	// Sep 7 2022 Wed, for the moment calculating 'LonePair Core' involved interactions
-																	// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
+																		// e.g., lp_core - core, lp_core - shel, lp_core - lp_core
+									//printf("CENTRAL SUBLATTICE ----------- : %10.4d\t%10.4d\t%10.4d\n",h,k,l);
 								    }	// h=k=l=0 (central image) - excluding self interaction
 								}
-								else
+								else					// case outside the central sublattice
 								{
+									//printf("non central : %10.4d\t%10.4d\t%10.4d\n",h,k,l);
 									manager.CoulombLonePairReal(*this,i,j,trans,is_first_scf);
 								}
 							}
@@ -537,11 +593,18 @@ cout << " / is first scf : " << is_first_scf << endl;
 						}// end l
 					}// end k
 				}//end h
+
+			auto ijloop_end = std::chrono::system_clock::now();
+
+			//std::chrono::duration<double> wtime = end - start;
+			std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
+			cout << wtime.count() << " s\n";
+
 			}// end j
 		}// end i
 
+		cout << " --------- REAL DONE " << endl;
 		auto end = std::chrono::system_clock::now();
-
 		//
 
 		start = std::chrono::system_clock::now();
@@ -581,6 +644,17 @@ cout << " / is first scf : " << is_first_scf << endl;
 		// Diagonalisations : Determine GroundStates of LonePairs
 		manager.GetLonePairGroundState(*this);
 
+		std::cout << "----------------- AFTER GroundState Calculation\n";
+		printf("lp_real_energy : %20.12lf\n",this->lp_real_energy);
+
+		double tmp = 0.;//Get Eval;
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	if( this->AtomList[i]->type == "lone" )
+			{	tmp += static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real();
+			}
+		}
+		printf("lp_eval        : %20.12lf\n",tmp);
+
 /*
 // Check Routine
 for(int k=0;k<this->NumberOfAtoms;k++)
@@ -603,7 +677,7 @@ for(int k=0;k<this->NumberOfAtoms;k++)
 	}
 }
 */
-		if( manager.IsSCFDone(LONEPAIR_SCF_TOL) ) { break; }
+		if( manager.IsSCFDone( LONEPAIR_SCF_TOL) ) { break; }
 
 		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )
@@ -629,7 +703,8 @@ void Cell::CalcLonePairCoulombDerivative()
 	Manager manager;			// Managing Interactions + Calculations
 	Eigen::Vector3d trans;			// Lattice Translation Vector
 	Eigen::Vector3d delta_rij, delta_r;	// Interatomic Diatance
-	manager.InitialiseLonePairDerivative(*this);
+
+	manager.InitialiseLonePairCalculation_Derivatives(*this);
 
 	auto start = std::chrono::system_clock::now();
 

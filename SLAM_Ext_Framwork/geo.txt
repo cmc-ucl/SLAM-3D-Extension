@@ -6,29 +6,25 @@ lattice_vector
 4.1541    5.7232    0.0000
 1.8851   -1.1551    2.3223
 
-#cell
-#3.89 4.3 3.2  90 90 90
-
 #Cell Info testing
 #MgO
 #System
 
-
-atom 	0.05 	0.00 	0.000 	Mg	shel	0.05	0.	-0.15
-atom 	0.49 	0.52 	0.025 	Mg	shel	0.5	0.5	0.025
-atom 	0.50 	0.00 	0.500 	Mg	shel
-atom 	0.00 	0.52 	0.500 	Mg	shel
-atom 	0.50 	0.50 	0.500 	O 	shel
-atom 	0.50 	0.00 	-0.04 	O 	shel   0.5 0.00 -0.03
-atom 	0.10 	0.50 	0.320 	O 	shel   0.1 0.48 0.30
-atom 	0.00 	0.00 	0.500 	O 	shel   # Test displacement at 'x_frac'
-
+atom 	0.05 	0.00 	0.000 	Mg	core   
+atom 	0.49 	0.52 	0.025 	Mg	core   
+atom 	0.50 	0.00 	0.500 	Mg	core
+atom 	0.00 	0.52 	0.500 	Mg	core
+atom 	0.50 	0.50 	0.500 	O 	core
+atom 	0.50 	0.00 	-0.04 	O 	core   
+atom 	0.10 	0.50 	0.320 	O 	core   
+atom 	0.00 	0.00 	0.500 	O 	core   
 
 
 
 
-species	Mg	shel	1.8	+0.2	100	999.
-species	O	shel 	1.0 	-3.0 	100 	999.
+
+species	Mg	core	2.0	
+species	O	core   -2.0 	
 
 #species	Mg	core	+2
 #species O  core -2
