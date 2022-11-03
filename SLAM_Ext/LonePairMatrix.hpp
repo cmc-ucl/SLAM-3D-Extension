@@ -13,7 +13,12 @@
 #include <Eigen/Core>
 #include "Integral_lib.hpp"
 
-#define GRID_W 2048		// Integral grid dense level 10^1
+//#define GRID_W 2048		// Integral grid dense level 10^1
+//#define GRID_W 1024		// Integral grid dense level 10^1
+//#define GRID_W 512		// Integral grid dense level 10^1
+//#define GRID_W 256
+#define GRID_W 128		// Integral grid dense level 10^1 .... level set for 10E-7 accuracy
+
 
 #define MIN(a,b)        ((a)>=(b)?(b):(a))
 
@@ -28,7 +33,7 @@ public:
 	Eigen::Matrix4d transform_matrix;		// Raw 4x4 transformation matrix
 	Eigen::Matrix3d transform_matrix_shorthand;	// Lower 3x3 block diag-matrix of the 4x4
 
-	const int b_serach( const double dist, const std::vector<double>& integral_knot );
+	int b_search( const double dist, const std::vector<double>& integral_knot );
 
 	const Eigen::Matrix4d& GetTransformationMatrix( const Eigen::Vector3d& Rij );	// Sets 'transform_matrix*'
 	// Inverse Transformation - H_global = P_transpose * H_local * P
@@ -47,7 +52,7 @@ public:
 	void test2();
 
 	// Test Function for Validation
-	const double NIntegral_test_real( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] );
+	double NIntegral_test_real( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] );
 ///	///	///	///	///	///	///	///
 
 	// Real Space position integral ... in a general reference frame

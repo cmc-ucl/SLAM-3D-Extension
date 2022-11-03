@@ -2,6 +2,8 @@
 #include <iostream>
 #include <omp.h>
 
+#include <cstdlib>
+
 #define MIN(a,b)        ((a)>=(b)?(b):(a))
 
 double foo( const double x )
@@ -10,7 +12,7 @@ double foo( const double x )
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
 using std::cout;
 using std::endl;
@@ -45,50 +47,39 @@ using std::endl;
 	int div = 1000000000;
 	double dx = (b-a)/div;
 	double partial_sum;
-	double total_sum = 0.;
 	double x1,x2;
 	double h1,h2;
 	double area;
 
 	double elapsed_t;
-	int thc;
+
+	int thc = strtol(argv[1],NULL,10);
 	
 	elapsed_t = -omp_get_wtime();
-
-	area = 0.;
-
-	////	////	////	BLOCK DISTRIBUTION --- almost 140% faster
-	int L = (div-1)/numproc;
-	int R = (div-1)%numproc;
-
-	int ista = L*rank + MIN(R,rank);
-	int iend = ista + L - 1;
-	if( R > rank ){ iend++; }
-
-	for(int i=ista;i<iend+1;i++)
-	{
-		x1 = a + dx*i;
-		x2 = x1 + dx;
-
-		h1 = foo(x1);
-		h2 = foo(x2);
 	
-		total_sum += (h2+h1)*dx/2.;
+	#pragma omp parallel private(x1,x2,h1,h2) num_threads(thc)
+	{
 
-		idx++;
+		#pragma omp for reduction(+:area)
+		for(int i=0;i<div-1;i++)
+		{
+			x1 = a + dx*i;
+			x2 = x1 + dx;
+
+			h1 = foo(x1);
+			h2 = foo(x2);
+		
+			area += (h2+h1)*dx/2.;
+
+			idx++;
+		}
 	}
-	// MPI_Allreduce( h_matrix_tmp[n]->data, sp_sys->scf_h_matrix_vs_sp_ion_monopole[n]->data, 16, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	// int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
-	// Allreduce
-	MPI_Allreduce( &total_sum, &area, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 
 	elapsed_t += omp_get_wtime();
 
 	//printf("Answer %lf\n",total_sum);       // should be ~ 39.000 // simple exe with time ... threading is much slower ...
 	printf("Answer %lf\n",area);       // should be ~ 39.000 // simple exe with time ... threading is much slower ...
 	printf("threads in use : %d / elapsed time : %lf\n",thc,elapsed_t);
-
-	MPI_Finalize();
 
 	return 0;
 }

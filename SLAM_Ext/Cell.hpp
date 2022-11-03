@@ -10,9 +10,13 @@
 
 #define DEF_MAX_ATOM_NUMBER 1024
 #define DEF_PERIODIC_SUM_ACCURACY 10E-18
+
 //#define DEF_PERIODIC_SUM_WEIGHT   1.234
-#define DEF_PERIODIC_SUM_WEIGHT   1.123
+//#define DEF_PERIODIC_SUM_WEIGHT   5.678
 //#define DEF_PERIODIC_SUM_WEIGHT   0.0123
+
+// Benchmark done ... doesn't lose accuracy in real/reciprocal calculations
+#define DEF_PERIODIC_SUM_WEIGHT   1.123
 
 class Cell
 {

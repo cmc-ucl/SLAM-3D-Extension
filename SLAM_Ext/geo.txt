@@ -25,6 +25,6 @@ atom 	0.24	0.23	0.60	Pb	lone
 atom	0.75	0.75	0.15 	O	core
 atom 	0.63	0.75	0.50	Pb	lone
 
-species Pb	lone	+3.00	 -1.00	 14.5
+species Pb	lone	+3.00	-1.00	 14.5
 species O	core	-2.00
 #species	O	shel 	1.0 	-3.0 	100 	999.

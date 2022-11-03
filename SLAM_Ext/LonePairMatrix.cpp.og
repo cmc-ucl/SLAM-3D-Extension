@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <vector>
 #include <cmath>
+
 #include <omp.h>
 
 #include "LonePairMatrix.hpp"
@@ -11,7 +12,7 @@ double radial( double a, double b, double c, double d, double r ) { return a*r*r
 double grid( double delta_r ) { return ceil(fabs(GRID_W/log(delta_r))); }
 //
 
-const int LonePairMatrix::b_serach( const double dist, const std::vector<double>& integral_knot )
+int LonePairMatrix::b_search( const double dist, const std::vector<double>& integral_knot )
 {
 	const int knot_stride = integral_knot.size();
 
@@ -383,7 +384,7 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 	double r,r_inc;
 	// Distance to Bohr
 
-	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );	// Get 'd' location on a knot
+	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -443,7 +444,7 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 	double r,r_inc;
 	// Distance to Bohr
 
-	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );	// Get 'd' location on a knot
+	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -530,7 +531,7 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 	double r,r_inc;
 	// Distance to Bohr
 
-	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );	// Get 'd' location on a knot
+	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -810,7 +811,7 @@ double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integra
 	double r,r_inc;
 	// Distance to Bohr
 
-	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );	// Get 'd' location on a knot
+	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -873,7 +874,7 @@ double LonePairMatrix_H::real_sz_grad2_zz_pc( const std::vector<double>& integra
 	double r,r_inc;
 	// Distance to Bohr
 
-	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );	// Get 'd' location on a knot
+	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -964,7 +965,7 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 	double r,r_inc;
 	// Distance to Bohr
 
-	const int knot_d = LonePairMatrix::b_serach( d, integral_knot );	// Get 'd' location on a knot
+	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -1342,7 +1343,7 @@ double LonePairMatrix_H::reci_sz_grad_gz_sin( const std::vector<double>& integra
 void LonePairMatrix_H::test2()			// binary link test
 {	std::cout << "LP mat Test 2\n";
 }
-const double LonePairMatrix_H::NIntegral_test_real( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] )
+double LonePairMatrix_H::NIntegral_test_real( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4] )
 {
 	double res, res_sz, res_xxyy, res_zz;
 	res = res_sz = res_xxyy = res_zz = 0.;
