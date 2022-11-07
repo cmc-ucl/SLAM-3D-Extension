@@ -14,7 +14,7 @@ ext_main.o : ext_main.cpp
 	$(CC) -O3 -static -c ext_main.cpp
 
 LonePairMatrix.o : LonePairMatrix.cpp LonePairMatrix.hpp Integral_lib.hpp
-	$(CC) -O3 -static -c LonePairMatrix.cpp -qopenmp
+	$(CC) -O3 -static -c LonePairMatrix.cpp -qopenmp -lgsl -lgslcblas
 
 Integral_lib.o : Integral_lib.cpp Integral_lib.hpp
 	$(CC) -O3 -static -c Integral_lib.cpp

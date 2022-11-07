@@ -277,7 +277,7 @@ int lp_id;
 // FDM CHECK VARS
 double delta = 0.005;
 double sig   = 1.85;
-Eigen::Vector3d v;
+double g = 0.05;
 
 for(int i=0;i<C.NumberOfAtoms;i++)
 {	//cout << "index : " << i+1 << " / type : " << C.AtomList[i]->type << endl;
@@ -287,8 +287,6 @@ for(int i=0;i<C.NumberOfAtoms;i++)
 		break;
 	}
 }
-// set a vector
-v << 1,2,3;
 //auto begin = std::chrono::system_clock::now();
 //set_h_matrix_real_pc(lp,v,sig,lp_id,0);
 //set_h_matrix_real_pc_derivative(lp,v,sig,lp_id,0);
@@ -298,40 +296,163 @@ v << 1,2,3;
 //cout << "Elapsed time (s) : lp - lp interaction" << endl;
 //cout << time_s << " (s)" << endl;
 
-double g = 0.05;
-
-
 if( lp != nullptr )
 {
-
-cout << "G Vector" << endl;
-//h_tmp_d2[0][2](0,1) = this->man_lp_matrix_h.real_sx_grad2_xz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sig,R.norm());	// [0][2] - XZ, (0,1) sx
-
 double ss,xx,zz;
 double x_xz;
 double z_ss,z_xx,z_zz;
-/*
-for(int i=0;i<1000;i++)
-{
-	g = g*1.0123;
 
-	ss = this->man_lp_matrix_h.reci_ss_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
-	xx = this->man_lp_matrix_h.reci_xx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
-	zz = this->man_lp_matrix_h.reci_zz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
-	x_xz = this->man_lp_matrix_h.reci_xz_grad_gx_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
-	z_ss = this->man_lp_matrix_h.reci_ss_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
-	z_xx = this->man_lp_matrix_h.reci_xx_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
-	z_zz = this->man_lp_matrix_h.reci_zz_grad_gz_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,g);
+cout << "Real Space Check      -----------------------------------------------------------" << endl;
+Eigen::Vector3d R;
+R << -3.2,0.52,1.3;
+
+cout << "H Onsite" << endl;
+//this->set_h_matrix_real_pc(lp,
+//const Eigen::Matrix4d& Manager::set_h_matrix_real_pc( /* IN/RES OUT */ LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i );
+//void Manager::set_h_matrix_real_pc_derivative( /* IN/RES OUT */ LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
+//void Manager::set_h_matrix_real_pc_derivative2( LonePair* lp, const Eigen::Vector3d& R, const double sig, const int lp_i, const int pc_i )
+Eigen::Matrix4d h; h.setZero();
+
+h = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",h(i,j)); } printf("\n"); }	// print h_matrix onsite
+
+Eigen::Matrix4d fx[2], fy[2], fz[2]; fx[0].setZero(); fx[1].setZero(); fy[0].setZero(); fy[1].setZero(); fz[0].setZero(); fz[1].setZero();
+Eigen::Matrix4d fdm_x,fdm_y,fdm_z;
+// x forward
+R[0] = R[0] + delta;
+fx[0] = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+R[0] = R[0] - delta;
+// x backward
+R[0] = R[0] - delta;
+fx[1] = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+R[0] = R[0] + delta;
+// y forward
+R[1] = R[1] + delta;
+fy[0] = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+R[1] = R[1] - delta;
+// y backward
+R[1] = R[1] - delta;
+fy[1] = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+R[1] = R[1] + delta;
+// z forward
+R[2] = R[2] + delta;
+fz[0] = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+R[2] = R[2] - delta;
+// z backward
+R[2] = R[2] - delta;
+fz[1] = this->set_h_matrix_real_pc(lp,R,sig,lp_id,0);
+R[2] = R[2] + delta;
+
+// fdm calc 1d
+fdm_x = (fx[0]-fx[1])/delta/2.;
+fdm_y = (fy[0]-fy[1])/delta/2.;
+fdm_z = (fz[0]-fz[1])/delta/2.;
+cout << "FDM Derivatives Real" << endl;
+cout << "FDMx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",fdm_x(i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "FDMy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",fdm_y(i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "FDMz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",fdm_z(i,j)); } printf("\n"); }	// print h_matrix onsite
+
+cout << endl;
+cout << "Derivatives Real analy" << endl;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);	// get 1st analytical derivatives
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+
+cout << endl;
+cout << "2nd derivative FDM" << endl;
+R[0] += delta;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);
+cout << "X Front" << cout << endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+R[0] -= delta;
+R[0] -= delta;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);
+cout << "X Back" << cout << endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+R[0] += delta;
+
+R[1] += delta;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);
+cout << "Y Front" << cout << endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+R[1] -= delta;
+R[1] -= delta;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);
+cout << "Y Back" << cout << endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+R[1] += delta;
+
+R[2] += delta;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);
+cout << "Z Front" << cout << endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+R[2] -= delta;
+R[2] -= delta;
+this->set_h_matrix_real_pc_derivative(lp,R,sig,lp_id,0);
+cout << "Z Back" << cout << endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_x[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+R[2] += delta;
 
 
-	printf("%12.8e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\n",
-		g,ss,xx,zz,z_ss,z_xx,z_zz,x_xz);
-	
-	if( g > 15. )
-		break;
-}
-*/
+// Calculate Analy Second Real derivatives ..
+cout << endl;
+cout << endl;
+this->set_h_matrix_real_pc_derivative2(lp,R,sig,lp_id,0);
+cout << "Derivatives 2 Real analy" << endl;
+cout << "dxx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_lp_xx[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dxy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_lp_xy[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dxz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_lp_xz[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dyy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_lp_yy[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dyz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_lp_yz[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+cout << "dzz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_lp_zz[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
 
+
+cout << endl;
+cout << endl;
+cout << "Reciprocal Space Check -----------------------------------------------------------" << endl;
 
 cout << "G FDM CHECK" << endl;
 double ss_f,xx_f,zz_f;
@@ -1423,6 +1544,7 @@ void Manager::InitialiseSCF( Cell& C )
 	}
 
 	this->man_scf_vec.clear(); 	// Clear man_scf_vec "Manager_Vector" ... man_scf_vec.size() = 0
+	this->man_scf_lp_real_energy.clear();
 }
 
 void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
@@ -1457,13 +1579,14 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 	{
 		if( C.AtomList[i]->type == "lone" )
 		{
-			std::cout << "---------------- BEFORE Diagonalisation LP label : " << i << std::endl;
-			printf("H matrix ... \n");
-			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
-			printf("EigenValues  ... \n");
-			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
-			printf("EigenVectors ... \n");
-			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
+
+std::cout << "---------------- BEFORE Diagonalisation LP label : " << i << std::endl;
+printf("H matrix ... \n");
+std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
+printf("EigenValues  ... \n");
+std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
+printf("EigenVectors ... \n");
+std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
 
 			// Setting Temporal h_matrix zeroes
 			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp.setZero();
@@ -1498,24 +1621,25 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 			
 			lp_scf_sum += static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues()(static_cast<LonePair*>(C.AtomList[i])->lp_gs_index).real();
 
-			std::cout << "---------------- AFTER Diagonalisation LP label : " << i << std::endl;
-			printf("H matrix ... \n");
-			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
-			printf("EigenValues  ... \n");
-			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
-			printf("EigenVectors ... \n");
-			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
-
+std::cout << "---------------- AFTER Diagonalisation LP label : " << i << std::endl;
+printf("H matrix ... \n");
+std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
+printf("EigenValues  ... \n");
+std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
+printf("EigenVectors ... \n");
+std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
 		}
 	}
 	this->man_scf_vec.push_back(lp_scf_sum);	// Logging CycSum
+	this->man_scf_lp_real_energy.push_back(C.lp_real_energy);
 
-	printf("Accumulated scf energies\n");
-	for(int i=0;i<this->man_scf_vec.size();i++)
-	{
-		printf("%d - %20.12lf\n",i+1,this->man_scf_vec[i]);
-	}
+printf("!! Accumulated scf evals / lp_real_energies\n");
+for(int i=0;i<this->man_scf_vec.size();i++)
+{
+	printf("%d \t %20.12e\t%20.12e\n",i+1,this->man_scf_vec[i],this->man_scf_lp_real_energy[i]);
 }
+
+}// function end;
 
 bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
@@ -1526,6 +1650,9 @@ bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 	{	if( fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
 		else
 		{ 	//this->man_scf_vec.claer();
+
+printf("Last / 2nd Last Energies : %20.12e\t%20.12e\n",this->man_scf_vec[this->man_scf_vec.size()-1],this->man_scf_vec[this->man_scf_vec.size()-2]);
+printf("Delta                    : %20.12e\n",fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]));
 			return true; 
 		}
 	}
@@ -1595,6 +1722,7 @@ void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double
 			h_mat_out[2](i,j) = v_glo(2);
 		}
 	}
+
 }
 
 void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
@@ -1657,7 +1785,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// Calculate Energy Contribution by the given LP density in the periodic image and a point charge in the central sublattice
 		partial_e = 0.;
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
 
 	// Save LonePair Density Energy ...
 	C.lp_real_energy += partial_e;
@@ -1703,7 +1831,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// Calculation Energy Contribution by the given LP density in the periodic image and the core in the central sublattice
 		partial_e = 0.;
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
 		
 	// Save LonePair Density Energy ...
 	C.lp_real_energy += partial_e;
@@ -1718,7 +1846,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// Calculation Energy Contribution by the given LP density in the periodic image and the shel in the central sublattice
 		partial_e = 0.;
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
 
 	// Save LonePair Density Energy ...
 	C.lp_real_energy += partial_e;
@@ -1751,7 +1879,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// Calculation Energy Contribution by the given LP density in the periodic image and the LP core in the central sublattice
 		partial_e = 0.;
-		for(int i=0;i<4;i++){ for(int j=0;j<4;j++) { partial_e += lp_cf[i] * lp_cf[j] * this->man_matrix4d_h_real_ws[1](i,j); }}			// PartialE ... Process Required
+		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++) { partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
 
 	// Save LonePair Density Energy ...
 	C.lp_real_energy += partial_e;

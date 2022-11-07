@@ -483,8 +483,8 @@ void Cell::CalcCoulombDerivative()
 
 ////	////	////	////
 
-#define LONEPAIR_SCF_TOL 10E-9
-#define LONEPAIR_DERIVATIVE_TOL 10E-10
+#define LONEPAIR_SCF_TOL 10E-8
+#define LONEPAIR_DERIVATIVE_TOL 10E-8
 
 void Cell::CalcLonePairCoulombEnergy()
 {
@@ -493,7 +493,7 @@ using std::endl;
 
 	bool is_first_scf = true;
 	bool is_scf_done = false;
-	this->scf_iter_max = 10;			// THIS NEED FURTHER MODIFICATION ... 09 Aug 2022
+	this->scf_iter_max = 999;			// THIS NEED FURTHER MODIFICATION ... 09 Aug 2022
 
 	Manager manager;
 	Eigen::Vector3d trans;			// Translation Vector
@@ -519,7 +519,7 @@ cout << endl;
 		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
 cout << "********************************************************\n";
-cout << "SCF CNT : " << n << " / is first scf : " << is_first_scf << endl;
+cout << "SCF CNT : " << n+1 << " / is first scf : " << is_first_scf << endl;
 cout << endl;
 
 		
@@ -644,8 +644,8 @@ cout << endl;
 		// Diagonalisations : Determine GroundStates of LonePairs
 		manager.GetLonePairGroundState(*this);
 
-		std::cout << "----------------- AFTER GroundState Calculation\n";
-		printf("lp_real_energy : %20.12lf\n",this->lp_real_energy);
+std::cout << " Cell.cpp ----------------- AFTER GroundState Calculation\n";
+printf("lp_real_energy : %20.12lf\n",this->lp_real_energy);
 
 		double tmp = 0.;//Get Eval;
 		for(int i=0;i<this->NumberOfAtoms;i++)
@@ -653,32 +653,11 @@ cout << endl;
 			{	tmp += static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real();
 			}
 		}
-		printf("lp_eval        : %20.12lf\n",tmp);
+printf("lp_eval        : %20.12lf\n",tmp);
 
-/*
-// Check Routine
-for(int k=0;k<this->NumberOfAtoms;k++)
-{
-	if( this->AtomList[k]->type == "lone" )
-	{
-		const LonePair* lp = static_cast<LonePair*>(this->AtomList[k]);
-		cout << "********************************************************\n";
-		cout << "# GS index : " << lp->lp_gs_index << endl;
-		cout << endl;
-		cout << "HMatrix : \n";
-		cout << lp->lp_h_matrix << endl;
-		cout << endl;
-		cout << "Eval : \n";
-		cout << lp->lp_eigensolver.eigenvalues() << endl;
-		cout << endl;
-		cout << "Evec : \n";
-		cout << lp->lp_eigensolver.eigenvectors() << endl;
-		cout << endl;
-	}
-}
-*/
-		if( manager.IsSCFDone( LONEPAIR_SCF_TOL) ) { break; }
-
+		if( manager.IsSCFDone( LONEPAIR_SCF_TOL ) )
+		{	break;
+		}
 		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )
 		{	is_first_scf = false;	// false flag indicates, only calculate LonePair density

@@ -3,7 +3,7 @@
 
 #define EV_UNIT (14.39964390675221758120)
 //#define TO_BOHR_RADII (0.52917721067)							// div Angstrom -> Bohr, mul Bohr -> Angstrom
-#define TO_BOHR_RADII (0.529177249)							// Wiki Base
+#define TO_BOHR_RADII (0.529177249)							// Wiki Base Division!! X Angs / 0.529 -> X / 0.529 Bohr
 #define HA_TO_EV_UNIT (EV_UNIT/TO_BOHR_RADII)						// mul Ha       -> eV
 #define FHA_TO_FEV_UNIT (EV_UNIT/TO_BOHR_RADII/TO_BOHR_RADII)				// mul Ha/Bohr  -> eV/Angstrom
 #define FFHA_TO_FFEV_UNIT (EV_UNIT/TO_BOHR_RADII/TO_BOHR_RADII/TO_BOHR_RADII)		// mul Ha/Bohr^2-> eV/Angstrom^2

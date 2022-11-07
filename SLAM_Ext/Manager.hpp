@@ -89,6 +89,7 @@ Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];	// Save Monopolar Contribution LP <--->
 Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
 
 std::vector<double> man_scf_vec;		// For the Use of SCF
+std::vector<double> man_scf_lp_real_energy;
 LonePairMatrix_H man_lp_matrix_h;	// LonePairMatrix_H : Instance ... managing solving integration tools
 
 public:
