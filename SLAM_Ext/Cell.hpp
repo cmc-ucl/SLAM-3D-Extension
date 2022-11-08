@@ -18,6 +18,7 @@
 // Benchmark done ... doesn't lose accuracy in real/reciprocal calculations
 #define DEF_PERIODIC_SUM_WEIGHT   1.123
 
+
 class Cell
 {
 

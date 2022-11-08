@@ -36,6 +36,7 @@ public:
 	int b_search( const double dist, const std::vector<double>& integral_knot );
 
 	const Eigen::Matrix4d& GetTransformationMatrix( const Eigen::Vector3d& Rij );	// Sets 'transform_matrix*'
+	//const Eigen::Matrix4d& GetTransformationMatrix( Eigen::Vector3d& Rij );	// Sets 'transform_matrix*'
 	// Inverse Transformation - H_global = P_transpose * H_local * P
 	// Direct  Transformation - H_local  = P * H_local * P_transpose
 };

@@ -304,7 +304,7 @@ double z_ss,z_xx,z_zz;
 
 cout << "Real Space Check      -----------------------------------------------------------" << endl;
 Eigen::Vector3d R;
-R << -3.2,0.52,1.3;
+R << -3.2,0.52,4.3;
 
 cout << "H Onsite" << endl;
 //this->set_h_matrix_real_pc(lp,
@@ -1596,14 +1596,23 @@ std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors(
 			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp(3,3) = static_cast<LonePair*>(C.AtomList[i])->lp_lambda;
 
 			// SET TMP matrix
-			for(int j=0;j<MX_C;j++)
+			//for(int j=0;j<MX_C;j++)
+			for(int j=0;j<C.NumberOfAtoms;j++)
 			{
 				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPC_H_Real[i][j][0];
 				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPC_H_Real[i][j][1];
 
 				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPLP_H_Real[i][j];
-				static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPLP_H_Reci[i][j];
+				//static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPLP_H_Reci[i][j];
+
+				//std::cout << "LPC_H_Real[" << i << "][" << j << "]" << std::endl;
+				//std::cout << LPC_H_Real[i][j][0] << std::endl;
+				std::cout << "LPLP_H_Real[" << i << "][" << j << "]" << std::endl;
+				std::cout << LPLP_H_Real[i][j] << std::endl;
+
 			}
+			std::cout << "*** lp_h_matrix_tmp" << std::endl;
+			std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp << std::endl;
 	
 			static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix = static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp;
 			// Copy lp_h_matrix_tmp -> (into) lp_h_matrix ... dialgonalisation target
@@ -1687,6 +1696,15 @@ void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double
 
 	this->man_lp_matrix_h.GetTransformationMatrix(Rij);
 
+for(int i=0;i<4;i++)
+{	for(int j=0;j<4;j++)
+	{	if( std::isnan( this->man_lp_matrix_h.transform_matrix(i,j) ) )
+		{	printf("transform isnan %20.12e\n",Rij.norm()); 
+			printf("%20.12e\t%20.12e\t%20.12e\n",Rij[0],Rij[1],Rij[2]);
+			exit(1);
+		}
+}}
+
 	h_mat_ws[0].setZero(); h_mat_ws[1].setZero(); h_mat_ws[2].setZero();	// 1st derivatives ... w.r.t. 'j' of Ri -> Rj // dx dy dz - workspace
 
 	// 1. Compute first derivative integrals in a local symmetry
@@ -1697,7 +1715,12 @@ void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double
 
 	h_mat_ws[1](0,2) = h_mat_ws[1](2,0) = h_mat_ws[0](0,1);	// y-sy = x-sx
 	h_mat_ws[1](2,3) = h_mat_ws[1](3,2) = h_mat_ws[0](1,3);	// y-yz = x-sz
-	
+
+for(int i=0;i<4;i++)
+{	for(int j=0;j<4;j++)
+	{	if( std::isnan( h_mat_ws[0](i,j) ) )
+		{	printf("x isnan %d\t%d\n",i,j);	exit(1);
+}}}
 	h_mat_ws[2](0,0) = this->man_lp_matrix_h.real_ss_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 	h_mat_ws[2](0,3) = this->man_lp_matrix_h.real_sz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 	h_mat_ws[2](3,0) = h_mat_ws[2](0,3);
@@ -1705,11 +1728,32 @@ void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double
 	h_mat_ws[2](2,2) = h_mat_ws[2](1,1);
 	h_mat_ws[2](3,3) = this->man_lp_matrix_h.real_zz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 
+for(int i=0;i<4;i++)
+{	for(int j=0;j<4;j++)
+	{	if( std::isnan( h_mat_ws[2](i,j) ) )
+		{	printf("z isnan %d\t%d\n",i,j); exit(1);
+}}}
+
+//std::cout << std::endl;
+//std::cout << h_mat_ws[0] << std::endl;
+//std::cout << std::endl;
+//std::cout << h_mat_ws[2] << std::endl;
+//std::cout << std::endl;
+
 	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
 	// note : h_tmp_*_ws are in the local reference frame, their x'/y'/z' element (local) has to be inversed to x/y/z (global) 
 	h_mat_ws[0] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[0] * this->man_lp_matrix_h.transform_matrix;
 	h_mat_ws[1] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[1] * this->man_lp_matrix_h.transform_matrix;
 	h_mat_ws[2] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[2] * this->man_lp_matrix_h.transform_matrix;
+
+
+//std::cout << std::endl;
+//std::cout << "TRANSFORMATION" << std::endl;
+//std::cout << h_mat_ws[0] << std::endl;
+//std::cout << std::endl;
+//std::cout << h_mat_ws[2] << std::endl;
+//std::cout << std::endl;
+
 
 	// 3. Transform back to the global reference frame
 	for(int i=0;i<4;i++)
@@ -1913,7 +1957,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		real_pos[2] = 2.*lp_cf[0]*lp_cf[3]*lpj->lp_real_position_integral;	// 2 cs cpz
 
 		for(int ii=0;ii<4;ii++)
-		{	for(int jj=ii;jj<4;jj++)
+		{	for(int jj=0;jj<4;jj++)
 			{
 				this->LPLP_H_Real[i][j](ii,jj) += factor * (  real_pos[0] * this->man_matrix4d_h_real_derivative_out[0](ii,jj)	
 									    + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1](ii,jj)

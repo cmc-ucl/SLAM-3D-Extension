@@ -34,6 +34,7 @@ int LonePairMatrix::b_search( const double dist, const std::vector<double>& inte
 }
 
 const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( const Eigen::Vector3d& Rij )
+//const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( Eigen::Vector3d& Rij )
 {                                                               // reserved for : Cell.lp_transformation_matrix, AtomList[i/j]->cart, static_cast<Shell*>(AtomList[i/j])->shel_cart,
         //Eigen::Vector3d Rij = cart_i - cart_j;
         //Eigen::Vector3d Rij = cart_j - cart_i;                  // Using This Convention ... Must follow that 'cart_i' has to be a core position of LonePair of interest
@@ -49,12 +50,14 @@ const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( const Eigen::Vec
 
         this->transform_matrix(0,0) = 1.;
 
-        if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )                    // if vector 'Rij' is on z-axis
+        //if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )                    // if vector 'Rij' is on z-axis
+        if( ( fabs(Rij(0)) < 10E-11 ) && ( fabs(Rij(1)) < 10E-11 ) && (Rij(2) > 0) )                    // if vector 'Rij' is on z-axis
         {       this->transform_matrix(1,1) = 1.;
                 this->transform_matrix(2,2) = 1.;
                 this->transform_matrix(3,3) = 1.;                             // set lower-right block 3x3 matrix as I
         }
-        else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )               // if vector 'Rij' is on negative z-axis
+        //else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )               // if vector 'Rij' is on negative z-axis
+        else if( ( fabs(Rij(0)) < 10E-11 ) && ( fabs(Rij(1)) < 10E-11 ) && (Rij(2) < 0) )               // if vector 'Rij' is on negative z-axis
         {       this->transform_matrix(1,1) = 1.;
                 this->transform_matrix(2,2) = 1.;
                 this->transform_matrix(3,3) =-1.;                             // set the matrix has xy-plane reflection
@@ -452,7 +455,7 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			//#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
 			for(int k=0;k<(int)mesh;k++)
 			{
 				r  = d + k * r_inc;
@@ -464,6 +467,8 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 		}
 	}
 	// eV Unit
+	if( std::isnan(res) ){	printf("ss grad z - isnan\n"); exit(1); }
+
 	return res*FHA_TO_FEV_UNIT;
 }
 
@@ -527,6 +532,7 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 			}
 		}
 	}
+	if( std::isnan(res) ){	printf("sz grad z - isnan\n"); exit(1); }
 	// eV Unit
 	return res*FHA_TO_FEV_UNIT;
 }
@@ -621,6 +627,7 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 			}
 		}
 	}
+	if( std::isnan(res) ){	printf("zz grad z - isnan\n"); exit(1); }
 	// eV Unit
 	return res*FHA_TO_FEV_UNIT;
 }
