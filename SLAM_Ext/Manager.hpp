@@ -64,11 +64,15 @@ Eigen::Matrix4d real_lp_h_lp_zz[MX_C][MX_C];
 
 
 Eigen::Matrix4d man_matrix4d_h_real_ws[2];			// Workspace H matrix real part
+
 Eigen::Matrix4d man_matrix4d_h_real_derivative_ws[3];		// Workspace H matrix real derivative
 Eigen::Matrix4d man_matrix4d_h_real_derivative_out[3];
+
 Eigen::Matrix4d man_matrix4d_h_real_derivative2_ws[9];		// Workspace H matrix real derivative2
 Eigen::Matrix4d man_matrix4d_h_real_derivative2_out[9];
 
+Eigen::Matrix4d man_matrix4d_h_reci_ws[2];
+Eigen::Matrix4d man_matrix4d_h_reci_out[2];
 
 
 
@@ -79,17 +83,16 @@ Eigen::Matrix4d man_matrix4d_h_real_derivative2_out[9];
 	Saving Interaction of a lone pair density (in the central sublattice) w.r.t. surrounding classical entities 
 */
 Eigen::Matrix4d LPC_H_Real[MX_C][MX_C][2];	// [i][j][0] ... if 'j' is core or lp_core // [i][j][1] ... if 'j' is shell
-Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with h'=k'=l' - reciprocal self (i.e., lone pair electron interacting with its core in the central sublattice)
-
-// Storage for H Matrix (E) - LP vs LP
-Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];	// Save Monopolar Contribution LP <---> LP
+Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];	// Save Monopolar Contribution LP <---> LP / Dipolar Terms // Storage for H Matrix (E) - LP vs LP
 //Eigen::Matrix4d LPLP_H_Real_x[MX_C][MX_C];	// Save Dipolar   Contribution LP <---> LP
 //Eigen::Matrix4d LPLP_H_Real_y[MX_C][MX_C];
 //Eigen::Matrix4d LPLP_H_Real_z[MX_C][MX_C];
+Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with h'=k'=l' - reciprocal self (i.e., lone pair electron interacting with its core in the central sublattice)
 Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
 
 std::vector<double> man_scf_vec;		// For the Use of SCF
 std::vector<double> man_scf_lp_real_energy;
+std::vector<double> man_scf_lp_reci_energy;
 LonePairMatrix_H man_lp_matrix_h;	// LonePairMatrix_H : Instance ... managing solving integration tools
 
 public:
@@ -147,6 +150,8 @@ void support_h_matrix_real_derivative( const LonePair* lp, const double& sigma, 
 // ACTUAL USE - H (E) Matrix Calculations
 void set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector );
 
+void support_h_matrix_reci( const LonePair* lp, const Eigen::Vector3d& G, /* workspace */ Eigen::Matrix4d (&h_mat_ws)[2], /* out */ Eigen::Matrix4d (&h_mat_out)[2] );
+void set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen::Vector3d& G );
 
 
 

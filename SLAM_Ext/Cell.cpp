@@ -499,7 +499,9 @@ using std::endl;
 	Eigen::Vector3d trans;			// Translation Vector
 	Eigen::Vector3d delta_r, delta_rij;	// Interatomic Distance
 
-	/* Initiate SCF Cycle */
+	/*	Initiate SCF Cycle
+		1. Set Position Integral result (Real Space)
+		2. Set Esp parameters + Diagonalisation (setting the ground-state)	*/
 	manager.InitialiseSCF(*this);
 
 printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
@@ -516,6 +518,8 @@ cout << endl;
 	// SCF Loop 'n'
 	for(int n=0;n<this->scf_iter_max;n++)
 	{
+		/*	Initialise(Zeros) for LPC_... LPLP_... temporal interaction values realted with LP entities
+			Initialise(Zeros) Cell.lp_real_energy = Cell.lp_reci_energy = Cell.lp_reci_self_energy = Cell.lp_total_energy = 0;	*/
 		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
 cout << "********************************************************\n";
@@ -598,7 +602,7 @@ cout << endl;
 
 			//std::chrono::duration<double> wtime = end - start;
 			std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
-			cout << wtime.count() << " s\n";
+			cout << wtime.count() << " s - Real Space \n";
 
 			}// end j
 		}// end i

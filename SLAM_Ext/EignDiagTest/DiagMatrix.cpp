@@ -20,6 +20,12 @@ using std::endl;
 	     0.76,4.6,5,
 	     3.25,5,-6.1;
 
+	cout <<"Mat 'm'"<<endl;
+	cout << m << endl;
+	m = m*2.5;
+	cout <<"Mat 'm'"<<endl;
+	cout << m << endl;
+
 	cout << "1>Target Matrix: \n";
 	cout << m << endl;
 	es.compute(m,true);	// true flag : compute_eigenvectors=true
