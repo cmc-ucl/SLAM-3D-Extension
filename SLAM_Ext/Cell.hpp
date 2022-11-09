@@ -69,6 +69,7 @@ double mono_total_energy;
 // LonePair Energy Contributions ... Remember some terms below only contain the half of the contributions
 double lp_real_energy, lp_reci_energy, lp_reci_self_energy;
 double lp_total_energy;
+double lp_eval_sum;
 
 // LONEPAIR__ Calculatiosn LonePiar involved
 double lp_scf_energy_prev;				// SCF usage ... logging prev scf energy of lone pairs

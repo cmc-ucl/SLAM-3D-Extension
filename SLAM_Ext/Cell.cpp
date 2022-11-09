@@ -551,9 +551,8 @@ cout << endl;
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
 			{	
 
-			auto ijloop_sta = std::chrono::system_clock::now();
-
-				printf(" ######### PAIR : %d \t %d\n", i, j);
+auto ijloop_sta = std::chrono::system_clock::now();
+printf(" ######### PAIR : %d \t %d\n", i, j);
 				/*
 	
 				if( this->AtomList[j]->type == "lone" )
@@ -598,24 +597,28 @@ cout << endl;
 					}// end k
 				}//end h
 
-			auto ijloop_end = std::chrono::system_clock::now();
-
-			//std::chrono::duration<double> wtime = end - start;
-			std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
-			cout << wtime.count() << " s - Real Space \n";
+auto ijloop_end = std::chrono::system_clock::now();
+//std::chrono::duration<double> wtime = end - start;
+std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
+cout << wtime.count() << " s - Real Space \n";
 
 			}// end j
 		}// end i
 
-		cout << " --------- REAL DONE " << endl;
+cout << " --------- REAL DONE " << endl;
 		auto end = std::chrono::system_clock::now();
 		//
 
 		start = std::chrono::system_clock::now();
 	  
+cout << " --------- RECI START " << endl;
+
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
-			{	for(int h = -this->ih_max ; h <= this->ih_max ; h++)
+			{
+auto ijloop_sta = std::chrono::system_clock::now();
+printf(" ######### PAIR : %d \t %d\n", i, j);
+				for(int h = -this->ih_max ; h <= this->ih_max ; h++)
 				{	for(int k = -this->ik_max ; k <= this->ik_max ; k++)
 					{	for(int l = -this->il_max ; l <= this->il_max ; l++)
 						{
@@ -638,6 +641,10 @@ cout << endl;
 						}// end l
 					}// end k
 				}//end h
+auto ijloop_end = std::chrono::system_clock::now();
+//std::chrono::duration<double> wtime = end - start;
+std::chrono::duration<double> wtime = ijloop_end - ijloop_sta;
+cout << wtime.count() << " s - Reci Space \n";
 			}// end j
 		}// end i
 
@@ -660,7 +667,17 @@ printf("lp_real_energy : %20.12lf\n",this->lp_real_energy);
 printf("lp_eval        : %20.12lf\n",tmp);
 
 		if( manager.IsSCFDone( LONEPAIR_SCF_TOL ) )
-		{	break;
+		{
+lp_total_energy = lp_real_energy + lp_reci_energy + lp_eval_sum;
+printf("lp real / reci / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_eval_sum,lp_total_energy);
+printf("mm real / reci / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
+			break;
+		}
+		else
+		{
+lp_total_energy = lp_real_energy + lp_reci_energy + lp_eval_sum;
+printf("lp real / reci / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_eval_sum,lp_total_energy);
+printf("mm real / reci / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
 		}
 		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )

@@ -71,6 +71,7 @@ Eigen::Matrix4d man_matrix4d_h_real_derivative_out[3];
 Eigen::Matrix4d man_matrix4d_h_real_derivative2_ws[9];		// Workspace H matrix real derivative2
 Eigen::Matrix4d man_matrix4d_h_real_derivative2_out[9];
 
+Eigen::Matrix4d man_matrix4d_h_reci_self_ws;
 Eigen::Matrix4d man_matrix4d_h_reci_ws[2];
 Eigen::Matrix4d man_matrix4d_h_reci_out[2];
 

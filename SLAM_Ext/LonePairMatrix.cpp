@@ -155,7 +155,7 @@ double LonePairMatrix_H::reci_self_integral_ss( const std::vector<double>& integ
 		}
 	}
 	// eV Unit
-	return res;
+	return res*HA_TO_EV_UNIT;
 }
 
 // xx = yy = zz

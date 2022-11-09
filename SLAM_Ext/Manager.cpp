@@ -1588,7 +1588,7 @@ void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
 */
 	// Method Actual...
 	//C.energy_real_sum_cnt = 0;	//C.energy_reci_sum_cnt = 0;
-	C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
+	C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
 } 
 
 void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
@@ -1663,6 +1663,7 @@ printf("EigenVectors ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
 		}
 	}
+	C.lp_eval_sum = lp_scf_sum;
 	this->man_scf_vec.push_back(lp_scf_sum);	// Logging CycSum
 	this->man_scf_lp_real_energy.push_back(C.lp_real_energy);
 	this->man_scf_lp_reci_energy.push_back(C.lp_reci_energy);
@@ -1670,7 +1671,7 @@ std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors(
 printf("!! Accumulated scf evals / lp_real_energies\n");
 for(int i=0;i<this->man_scf_vec.size();i++)
 {
-	printf("%d \t %20.12e\t%20.12e%20.12e\n",i+1,this->man_scf_vec[i],this->man_scf_lp_real_energy[i],this->man_scf_lp_reci_energy[i]);
+	printf("%d \t %20.12e\t%20.12e\t%20.12e\n",i+1,this->man_scf_vec[i],this->man_scf_lp_real_energy[i],this->man_scf_lp_reci_energy[i]);
 }
 
 }// function end;
@@ -2089,22 +2090,45 @@ void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eige
 	Manager::set_h_matrix_real( C, i, j, TransVector );
 }
 
-void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )
+void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )	// self energy in the reciprocal space
 {
 	double Qi,Qj;
+	double factor;
 	Eigen::Vector3d Rij;
         // TransVector = h*a + k*b + l*c
         // Rij         = Ai.r - Aj.r - TransVector;
 
 	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )	// SelfEnergy by LonePair Cores
 	{
-		if( is_first_scf == true )
-		{
-			Qi  = C.AtomList[i]->charge;
+		if( is_first_scf == true )		// LPcore - LPcore Self Interaction
+		{	Qi  = C.AtomList[i]->charge;
 			Qj  = C.AtomList[j]->charge;
 			C.mono_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
 		}
+
+		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
+		LonePair* lpj = static_cast<LonePair*>(C.AtomList[j]);
+		Qi = lpi->lp_charge;
+		Qj = lpj->lp_charge;
+		factor = 0.5 * (Qi*Qj);
+
+		this->man_matrix4d_h_reci_self_ws.setZero();
+
+		// Evaluation
+		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_lp_matrix_h.reci_self_integral_ss(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);
+		this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);
+		this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = this->man_matrix4d_h_reci_self_ws(1,1);
+
+		this->LPLP_H_Reci[i][j] = this->man_matrix4d_h_reci_self_ws;
+
+std::cout << "SELF !!!" << std::endl;
+printf("Pair %d\t%d\n",i,j);
+std::cout << this->LPLP_H_Reci[i][j] << std::endl;
+//exit(1);
+
 	}
+
+	return;
 }
 
 void Manager::support_h_matrix_reci( const LonePair* lp, const Eigen::Vector3d& G, /* workspace */ Eigen::Matrix4d (&h_mat_ws)[2], /* out */ Eigen::Matrix4d (&h_mat_out)[2] )
