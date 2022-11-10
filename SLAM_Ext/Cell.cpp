@@ -504,6 +504,7 @@ using std::endl;
 		2. Set Esp parameters + Diagonalisation (setting the ground-state)	*/
 	manager.InitialiseSCF(*this);
 
+printf("sigma        : %20.12lf\n",this->sigma);
 printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
 printf("rcut        : %12.6lf\n",this->rcut);
 printf("ihkl indices : %d\t%d\t%d\n",this->ih_max,this->ik_max,this->il_max);
@@ -668,16 +669,18 @@ printf("lp_eval        : %20.12lf\n",tmp);
 
 		if( manager.IsSCFDone( LONEPAIR_SCF_TOL ) )
 		{
-lp_total_energy = lp_real_energy + lp_reci_energy + lp_eval_sum;
-printf("lp real / reci / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_eval_sum,lp_total_energy);
-printf("mm real / reci / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
+lp_total_energy = lp_real_energy + lp_reci_energy + lp_reci_self_energy + lp_eval_sum;
+printf("lp_real / reci / reci_self : %20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_reci_self_energy);
+printf("lp real / reci + lplp_reci_self / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy+lp_reci_self_energy,lp_eval_sum,lp_total_energy);
+printf("mm real / reci                  / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
 			break;
 		}
 		else
 		{
-lp_total_energy = lp_real_energy + lp_reci_energy + lp_eval_sum;
-printf("lp real / reci / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_eval_sum,lp_total_energy);
-printf("mm real / reci / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
+lp_total_energy = lp_real_energy + lp_reci_energy + lp_reci_self_energy + lp_eval_sum;
+printf("lp_real / reci / reci_self : %20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_reci_self_energy);
+printf("lp real / reci + lplp_reci_self / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy+lp_reci_self_energy,lp_eval_sum,lp_total_energy);
+printf("mm real / reci                  / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
 		}
 		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )
