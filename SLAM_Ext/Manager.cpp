@@ -1654,7 +1654,7 @@ std::cout << LPLP_Real << std::endl;
 std::cout << "*** Reci LPC\n";
 std::cout << LPC_Reci << std::endl;
 std::cout << "*** Reci LPLP\n";
-std::cout << LPLP_Rcii << std::endl;
+std::cout << LPLP_Reci << std::endl;
 std::cout << "*** lp_h_matrix_tmp" << std::endl;
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp << std::endl;
 	
@@ -1871,6 +1871,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 
 		factor = 0.5 * C.AtomList[i]->charge * lp->lp_charge;
+
 		this->man_matrix4d_h_real_ws[1] = factor * this->man_matrix4d_h_real_ws[1];		// POSSIBLE MEMOIZATION ... (may be difficult ... since 'j' LP depends on lattice translation 'T')
 
 		// Calculate Energy Contribution by the given LP density in the periodic image and a point charge in the central sublattice
@@ -1947,7 +1948,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		LonePair* lpj = static_cast<LonePair*>(C.AtomList[j]);
 	
-		// <1> LP(i) Density (CSL) vs LP(j) Core (PI)
+		// <1> LP(i) Density (CSL) vs LP(j) Core (PI)	.... analogy Shell - Core
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i)('in the central sublattice')  -> LP(j)('in the periodic image') core
 		//Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector);
 		// Evaluation
@@ -1956,7 +1957,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		factor = 0.5 * lpi->lp_charge * C.AtomList[j]->charge;			// LP(i) charge * LP(j) core charge
 		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];		// LPcore treated as a classical entity ... saved in 'LPC_H_...'
 
-		// <2> LP(i) Core (CSL) vs LP(j) Density (PI)
+		// <2> LP(i) Core (CSL) vs LP(j) Density (PI)	.... analogy Core - Shell
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// LP(j)('in the periodic image') -> LP(j)('in the central sublattice')
 		//Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;
 		// Get LP(j) Density eigenvectors 
@@ -1973,21 +1974,34 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++) { partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
 
-	// Save LonePair Density Energy ...
+		// Save LonePair Density Energy ...
 	C.lp_real_energy += partial_e;
 
-		// <3> LP(i) Density vs LP(j) Density
+		// <3> LP(i) Density vs LP(j) Density	....	ananlogy Shell - Shell
 
 		////	////	////	////	////	////	////	////	////	////	////	////	////	////
-		////	3.A Monopolar Term
+		////	3.A Monopolar Term	
 
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i) (CSL) ----> LP(j) (PI)		
 		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
 		// Evalulation
 		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
+/*
+   std::cout << TransVector << std::endl;
+   std::cout << Rij << std::endl;
+   std::cout << Rij.norm() << std::endl;
+   for(int n=0;n<4;n++)
+   {	for(int m=0;m<4;m++)
+   { printf("%20.12e\t",this->man_matrix4d_h_real_ws[1](n,m)); } std::cout << std::endl; }
+   printf("%20.12e\n",this->man_lp_matrix_h.real_ss_pc(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma,Rij.norm()));
+
+for(int k=1;k<400;k++)
+{ printf("%20.6e\t%20.12e\t%20.12e\n",k*0.05,this->man_lp_matrix_h.real_ss_pc(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma,k*0.05),erfc((k*0.05)/C.sigma)/(k*0.05)); }
+exit(1);
+*/
 
 		factor = 0.5 * lpi->lp_charge * lpj->lp_charge;
-		this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_h_real_ws[1];
+	this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_h_real_ws[1];
 		////	****************************************************************************************************
 
 		////	////	////	////	////	////	////	////	////	////	////	////	////	////
@@ -2004,7 +2018,11 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		real_pos[0] = 2.*lp_cf[0]*lp_cf[1]*lpj->lp_real_position_integral;	// 2 cs cpx	// N.B. 'lp_cf' eigenvectors of 'j' LP Density
 		real_pos[1] = 2.*lp_cf[0]*lp_cf[2]*lpj->lp_real_position_integral;	// 2 cs cpy
 		real_pos[2] = 2.*lp_cf[0]*lp_cf[3]*lpj->lp_real_position_integral;	// 2 cs cpz
-
+/*
+for(int k=0;k<3;k++)
+{	printf("%20.1e\t",real_pos[k]); } std::cout << std::endl;
+exit(1);
+*/
 		for(int ii=0;ii<4;ii++)
 		{	for(int jj=0;jj<4;jj++)
 			{
@@ -2127,7 +2145,7 @@ printf("%20.12e\n",-0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV);
 		// lp self
 		Qi = static_cast<LonePair*>(C.AtomList[i])->lp_charge;
 		Qj = static_cast<LonePair*>(C.AtomList[j])->lp_charge;
-		C.lp_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
+	C.lp_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
 
 printf("%20.12e\n",C.lp_reci_self_energy);
 
@@ -2135,7 +2153,7 @@ printf("%20.12e\n",C.lp_reci_self_energy);
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		Qi = lpi->lp_charge;
 		Qj = C.AtomList[j]->charge;
-		factor = -0.5 * (Qi*Qj);
+		factor = -0.5 * (Qi*Qj) * 2.;
 
 		this->man_matrix4d_h_reci_self_ws.setZero();
 
@@ -2144,14 +2162,14 @@ printf("%20.12e\n",C.lp_reci_self_energy);
 		this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);
 		this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = this->man_matrix4d_h_reci_self_ws(1,1);
 
-		this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
+	this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
 
 std::cout << "SELF !!!" << std::endl;
 printf("Pair %d\t%d\n",i,j);
 std::cout << factor * this->man_matrix4d_h_reci_self_ws << std::endl;
+printf("%20.12e\n",this->man_matrix4d_h_reci_self_ws(0,0)*factor);
 //std::cout << this->LPLP_H_Reci[i][j] << std::endl;
 //exit(1);
-
 	}
 
 	return;
@@ -2176,6 +2194,17 @@ void Manager::support_h_matrix_reci( const LonePair* lp, const Eigen::Vector3d& 
 	// Inverse Transformation
 	h_mat_out[0] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[0] * this->man_lp_matrix_h.transform_matrix;	// Cos
 	h_mat_out[1] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[1] * this->man_lp_matrix_h.transform_matrix;	// Sin
+
+
+//for(int k=1;k<400;k++)
+//{ printf("%20.6e\t%20.12e\n",k*0.05,this->man_lp_matrix_h.reci_ss_cos(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,k*0.05)); }
+//exit(1);
+//for(int i=0;i<3;i++){ printf("%20.12e\t",G(i)); }
+//std::cout << std::endl;
+//printf("%20.12e\t",G.norm());
+//std::cout << std::endl;
+//exit(1);
+
 }
 
 void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen::Vector3d& G )
@@ -2188,7 +2217,7 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 
 	double factor, intact[4];	// factor : halved leading term / intact : Cos(G.Rij), Sin(G.Rij), rests->for LPLP
 	double Qi,Qj;
-	const double g_sqr = G.norm();
+	const double g_sqr = G.adjoint()*G;	//													// ERROR!!!
 	Eigen::Vector3d Rij;	// Saving Real Space Rij
         // TransVector(G) = 2pi h*u + 2pi k*v + 2pi l*w;
         // Rij            = Ai.r - Aj.r;
@@ -2207,10 +2236,39 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		intact[1] = sin(Rij.adjoint()*G);
 		
 		// Evaluation
-		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
+		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine	// return unit ... dimensionless
 
 		//this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
 		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+/*
+printf("%20.12lf\t%20.12lf\n",g_sqr,G.norm());
+std::cout << "Factor" << std::endl;
+printf("%20.12lf\n",factor);
+std::cout << "G vector " << std::endl;
+std::cout << G << std::endl;
+std::cout << "Gnorm" << std::endl;
+printf("%20.12lf\n",G.norm());
+std::cout << "Rij" << std::endl;
+std::cout << Rij << std::endl;
+std::cout << "Rij dot G" << std::endl;
+std::cout << Rij.adjoint() * G << std::endl;
+std::cout << "intact 0 / 1\n";
+printf("%20.12e\t%20.12e\n",intact[0],intact[1]);
+std::cout << "reci_ss\n";
+printf("%20.12e\n",this->man_matrix4d_h_reci_out[0](0,0));
+std::cout << "LP\n";
+for(int m=0;m<4;m++)
+{	for(int n=0;n<4;n++)
+	{	printf("%20.12lf\t", factor*(intact[0]*this->man_matrix4d_h_reci_out[0](m,n) - intact[1]*this->man_matrix4d_h_reci_out[1](m,n)));
+	}
+	std::cout << std::endl;
+}
+std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
+*/
+
+//if( fabs((this->man_matrix4d_h_reci_out[0](0,0))*intact[0]*factor) > 0.000001 )
+//{	exit(1);	}
+
 	}
 
 	if( type_i == "core" && type_j == "lone" )	// Core (CSL) ----> LonePairD (PI)
@@ -2228,7 +2286,7 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
-		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
+		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term	// Unit (eV)
 		intact[0] = cos(Rij.adjoint()*G);
 		intact[1] = sin(Rij.adjoint()*G);
 
@@ -2251,8 +2309,8 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		// <1> W.R.T CorePart (PI)
 		Qi  = lp->lp_charge;
 		Qj  = C.AtomList[j]->charge;
-		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+		//Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2359,8 +2417,8 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		// Core LP
 		Qi  = C.AtomList[i]->charge;
 		Qj  = lpj->lp_charge;
-		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+		//Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);

@@ -670,7 +670,7 @@ printf("lp_eval        : %20.12lf\n",tmp);
 		if( manager.IsSCFDone( LONEPAIR_SCF_TOL ) )
 		{
 lp_total_energy = lp_real_energy + lp_reci_energy + lp_reci_self_energy + lp_eval_sum;
-printf("lp_real / reci / reci_self : %20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_reci_self_energy);
+printf("lp_real / lp_reci / lp_reci_self/ lp_eval_sum /              : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_reci_self_energy,lp_eval_sum);
 printf("lp real / reci + lplp_reci_self / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy+lp_reci_self_energy,lp_eval_sum,lp_total_energy);
 printf("mm real / reci                  / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
 			break;
@@ -678,7 +678,7 @@ printf("mm real / reci                  / self               / total : %20.12e\t
 		else
 		{
 lp_total_energy = lp_real_energy + lp_reci_energy + lp_reci_self_energy + lp_eval_sum;
-printf("lp_real / reci / reci_self : %20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_reci_self_energy);
+printf("lp_real / lp_reci / lp_reci_self/ lp_eval_sum /              : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy,lp_reci_self_energy,lp_eval_sum);
 printf("lp real / reci + lplp_reci_self / lp_eval_sum + self / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",lp_real_energy,lp_reci_energy+lp_reci_self_energy,lp_eval_sum,lp_total_energy);
 printf("mm real / reci                  / self               / total : %20.12e\t%20.12e\t%20.12e\t%20.12e\n",mono_real_energy,mono_reci_energy,mono_reci_self_energy,mono_total_energy);
 		}
