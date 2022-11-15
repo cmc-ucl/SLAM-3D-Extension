@@ -1,42 +1,27 @@
-#cell
-#4.1	4.5	4.2	91.	54.	60.
-#cell
-#3.0	3.0	4.0	90	90	90
-#cell
-#4	4	4	90	90	90
-
 #lattice_vector
 #.3251    0.0000    0.0000
 #.1541    5.7232    0.0000
 #.8851   -1.1551    2.3223
-#atom	0.01	0.00	0.50	O	shel	0.1	-0.09	0.51
-#atom	0.50	0.50	0.00	O	shel
-#atom	0.00	0.50	0.49	Pb	lone
-#atom	0.50	0.48	0.55	Pb	lone
 
 
-#cell
-#3.0	3.0	4.0	90	90	90
-#atom	0.5	0.5	0.25 	O	core
-#atom 	0.5	0.5	0.734	Pb	lone
-#species Pb	lone	+3.00	 -1.00	 14.5
-#species O	core	-2.00
 
 cell
-3	3	3	90	90	90
-#4	4	4	90	90	90
-#5	5	5	90	90	90
-#6	6	6	90	90	90
+4.2	3.2	5.2	87	90	60
+atom	0.04	0.05	0.12	O	core
+atom	0.25	0.45	0.62	Pb	lone
 
-atom	0.	0.	0.	O	core
-atom	0.5	0.5	0.5	Pb	lone
+# LP 2 - alpha PbO
+#cell
+#6.1492	6.1492	7.7600	90	90	90
+#5.5902	5.5902	7.0543	90	90	90
+#5.082	5.082	6.413	90	90	90
+#4.62	4.62	5.83	90	90	90
+#4.2	4.2	5.3	90	90	90
 
-#atom	 0.	 0.	 0.	O	core
-#atom	 0.48	 0.0	 0.0	Pb	lone
-#atom	 0.5	 0.5	 0.1	O	core
-#atom	 0.0	 0.52	 0.0	Pb	lone
+#atom	 0	 0	 0	O	core
+#atom	 0.5	 0.5	 0	O	core
+#atom	 0.5	 0	 0.22	Pb	lone
+#atom	 0	 0.5	 0.78	Pb	lone
 
 species Pb	lone	+3.	-1.	999999
-#species Pb	core	+2.
-#species Pb	shel    +3.	-1.	0.	0.
 species O	core	-2.

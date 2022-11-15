@@ -17,8 +17,8 @@
 
 // Benchmark done ... doesn't lose accuracy in real/reciprocal calculations
 //#define DEF_PERIODIC_SUM_WEIGHT   1.123
-#define DEF_PERIODIC_SUM_WEIGHT   1.00141	// similar to gulp core only - rspeed 1.123^3
-//#define DEF_PERIODIC_SUM_WEIGHT   1.123
+//#define DEF_PERIODIC_SUM_WEIGHT   1.00141	// similar to gulp core only - rspeed 1.123^3
+#define DEF_PERIODIC_SUM_WEIGHT   1.123
 
 
 class Cell
