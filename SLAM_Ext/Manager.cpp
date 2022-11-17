@@ -1,8 +1,19 @@
 #include "Manager.hpp"
 
-//#define PRINT_REAL_SPACE_D2
+#define DERIVATIVE_CHECK
+#define SHOW_LP_MATRIX
 
-#define DEV_G_SPACE
+
+void ShowMatrix( const Eigen::Matrix4d& m )
+{
+	for(int i=0;i<4;i++)
+	{	for(int j=0;j<4;j++)
+		{	printf("%20.12e\t",m(i,j));
+		}
+		std::cout << std::endl;
+	}
+	return;
+}
 
 // Implement RealSpace Integrators - Input ... LonePair* / Vector to a species / sigma / IndexLonePair* / IndexSpecies
 
@@ -268,7 +279,7 @@ void Manager::InitialiseEnergy( Cell& C )
 {
 
 
-#ifdef DEV_G_SPACE
+#ifdef DERIVATIVE_CHECK
 using std::cout;
 using std::endl;
 LonePair* lp = nullptr;
@@ -620,15 +631,13 @@ G(2) = G(2) + delta;
 gz = gz/2./delta;
 for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%20.12e\t",gz(i,j)); } cout << endl;}
 
-//exit(1);
-#endif
 } // if( lp != nullptr )
-
+#endif	//  #define DEV_G_SPACE
 
 	// Method Actual...
 	C.energy_real_sum_cnt = 0;
 	C.energy_reci_sum_cnt = 0;
-	C.mono_real_energy = C.mono_reci_energy = C.mono_reci_self_energy = C.mono_total_energy = 0.;
+	C.mono_real_energy = C.mono_reci_energy = C.mono_reci_self_energy = C.mono_total_energy = 0.;	// CLASSICAL ENERGY
 }
 
 void Manager::InitialiseDerivative( Cell& C )
@@ -646,7 +655,7 @@ void Manager::InitialisePeriodicSysParameter( Cell& C )		// Prepare Parameters -
 
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{	NumberOfObject++;
-		if( C.AtomList[i]->type == "shel" ) { NumberOfObject++; }
+		//if( C.AtomList[i]->type == "shel" ) { NumberOfObject++; }	// ++ count for NOA if shel exists
 	}
 
 	C.sigma = pow(C.weight*NumberOfObject*M_PI*M_PI*M_PI/C.volume/C.volume,-1./6.);
@@ -1565,28 +1574,7 @@ void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
 			LPLP_H_Reci[j][k].setZero();	// Interaction of LP<--->LP Reciprocal
 		}
 	}
-/*
-	for(int i=0;i<C.NumberOfAtoms;i++)
-	{
-		if( C.AtomList[i]->type == "lone" )
-		{
-			for(int j=0;j<C.NumberOfAtoms;j++)
-			{	for(int k=0;k<C.NumberOfAtoms;k++)
-				{
-					LPC_H_Real[j][k][0].setZero();	// Interaction with cores + LP cores
-					LPC_H_Real[j][k][1].setZero();	// Interaction with shels
 
-					LPC_H_Reci[j][k][0].setZero();
-					LPC_H_Reci[j][k][1].setZero();
-
-					LPLP_H_Real[j][k].setZero();	// Interaction of LP<--->LP Real
-					LPLP_H_Reci[j][k].setZero();	// Interaction of LP<--->LP Reciprocal
-				}
-			}
-		}
-	}
-*/
-	// Method Actual...
 	//C.energy_real_sum_cnt = 0;	//C.energy_reci_sum_cnt = 0;
 	C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
 } 
@@ -1598,16 +1586,16 @@ void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisai
 	double lp_scf_sum = 0.;		// TEMOPORALILY HOLDING GROUND STATE ENERGY SUM
 	LonePair* lp = nullptr;
 
+#ifdef SHOW_LP_MATRIX
 Eigen::Matrix4d LPC_Real, LPLP_Real;
 Eigen::Matrix4d LPC_Reci, LPLP_Reci;
-LPC_Real.setZero(); LPLP_Real.setZero();
-LPC_Reci.setZero(); LPLP_Reci.setZero();
-
+#endif
 	for(int i=0;i<C.NumberOfAtoms;i++)
 	{
 		if( C.AtomList[i]->type == "lone" )
 		{
 			lp = static_cast<LonePair*>(C.AtomList[i]);
+/*
 std::cout << "---------------- BEFORE Diagonalisation LP label : " << i << std::endl;
 printf("H matrix ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
@@ -1615,14 +1603,17 @@ printf("EigenValues  ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
 printf("EigenVectors ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
-
+*/
 			// Setting Temporal h_matrix zeroes
 			lp->lp_h_matrix_tmp.setZero();
 			// Setting Onsite LonePair Model Parameter Lambda
 			lp->lp_h_matrix_tmp(1,1) = lp->lp_lambda;
 			lp->lp_h_matrix_tmp(2,2) = lp->lp_lambda;
 			lp->lp_h_matrix_tmp(3,3) = lp->lp_lambda;
-
+#ifdef SHOW_LP_MATRIX
+LPC_Real.setZero(); LPLP_Real.setZero();
+LPC_Reci.setZero(); LPLP_Reci.setZero();
+#endif
 			// SET TMP matrix
 			//for(int j=0;j<MX_C;j++)
 			for(int j=0;j<C.NumberOfAtoms;j++)
@@ -1631,33 +1622,29 @@ std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors(
 				lp->lp_h_matrix_tmp += LPC_H_Real[i][j][1];	// Contribution by Shell
 				lp->lp_h_matrix_tmp += LPLP_H_Real[i][j];	// Contribution by LP-Density
 
-LPC_Real += LPC_H_Real[i][j][0];
-LPLP_Real+= LPLP_H_Real[i][j];
-
 				lp->lp_h_matrix_tmp += LPC_H_Reci[i][j][0];
 				lp->lp_h_matrix_tmp += LPC_H_Reci[i][j][1];
 				lp->lp_h_matrix_tmp += LPLP_H_Reci[i][j];
-
+#ifdef SHOW_LP_MATRIX
+LPC_Real += LPC_H_Real[i][j][0];
+LPLP_Real+= LPLP_H_Real[i][j];
 LPC_Reci += LPC_H_Reci[i][j][0];
 LPLP_Reci+= LPLP_H_Reci[i][j];
-
-//static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp += LPLP_H_Reci[i][j];
-//std::cout << "LPC_H_Real[" << i << "][" << j << "]" << std::endl;
-//std::cout << LPC_H_Real[i][j][0] << std::endl;
-//std::cout << "LPLP_H_Real[" << i << "][" << j << "]" << std::endl;
-//std::cout << LPLP_H_Real[i][j] << std::endl;
+#endif
 			}
+#ifdef SHOW_LP_MATRIX
 std::cout << "*** Real LPC\n";
-std::cout << LPC_Real << std::endl;
+ShowMatrix(LPC_Real);
 std::cout << "*** Real LPLP\n";
-std::cout << LPLP_Real << std::endl;
+ShowMatrix(LPLP_Real);
 std::cout << "*** Reci LPC\n";
-std::cout << LPC_Reci << std::endl;
+ShowMatrix(LPC_Reci);
 std::cout << "*** Reci LPLP\n";
-std::cout << LPLP_Reci << std::endl;
+ShowMatrix(LPLP_Reci);
 std::cout << "*** lp_h_matrix_tmp" << std::endl;
-std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp << std::endl;
-	
+ShowMatrix(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp);
+#endif
+
 			lp->lp_h_matrix = lp->lp_h_matrix_tmp;
 			// Copy lp_h_matrix_tmp -> (into) lp_h_matrix ... dialgonalisation target
 			lp->lp_eigensolver.compute(lp->lp_h_matrix,true);
@@ -1675,11 +1662,12 @@ std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp << std::endl
 
 std::cout << "---------------- AFTER Diagonalisation LP label : " << i << std::endl;
 printf("H matrix ... \n");
-std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix << std::endl;
+ShowMatrix(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix);
 printf("EigenValues  ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
 printf("EigenVectors ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
+
 		}
 	}
 	C.lp_eval_sum = lp_scf_sum;
@@ -1704,9 +1692,10 @@ bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 	{	if( fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
 		else
 		{ 	//this->man_scf_vec.claer();
-
+/*
 printf("Last / 2nd Last Energies : %20.12e\t%20.12e\n",this->man_scf_vec[this->man_scf_vec.size()-1],this->man_scf_vec[this->man_scf_vec.size()-2]);
 printf("Delta                    : %20.12e\n",fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]));
+*/
 			return true; 
 		}
 	}
@@ -1741,6 +1730,7 @@ void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double
 
 	this->man_lp_matrix_h.GetTransformationMatrix(Rij);
 
+// isnan checker
 for(int i=0;i<4;i++)
 {	for(int j=0;j<4;j++)
 	{	if( std::isnan( this->man_lp_matrix_h.transform_matrix(i,j) ) )
@@ -1761,6 +1751,7 @@ for(int i=0;i<4;i++)
 	h_mat_ws[1](0,2) = h_mat_ws[1](2,0) = h_mat_ws[0](0,1);	// y-sy = x-sx
 	h_mat_ws[1](2,3) = h_mat_ws[1](3,2) = h_mat_ws[0](1,3);	// y-yz = x-sz
 
+// isnan checker
 for(int i=0;i<4;i++)
 {	for(int j=0;j<4;j++)
 	{	if( std::isnan( h_mat_ws[0](i,j) ) )
@@ -1773,32 +1764,18 @@ for(int i=0;i<4;i++)
 	h_mat_ws[2](2,2) = h_mat_ws[2](1,1);
 	h_mat_ws[2](3,3) = this->man_lp_matrix_h.real_zz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 
+// isnan checker
 for(int i=0;i<4;i++)
 {	for(int j=0;j<4;j++)
 	{	if( std::isnan( h_mat_ws[2](i,j) ) )
 		{	printf("z isnan %d\t%d\n",i,j); exit(1);
 }}}
 
-//std::cout << std::endl;
-//std::cout << h_mat_ws[0] << std::endl;
-//std::cout << std::endl;
-//std::cout << h_mat_ws[2] << std::endl;
-//std::cout << std::endl;
-
 	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
 	// note : h_tmp_*_ws are in the local reference frame, their x'/y'/z' element (local) has to be inversed to x/y/z (global) 
 	h_mat_ws[0] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[0] * this->man_lp_matrix_h.transform_matrix;
 	h_mat_ws[1] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[1] * this->man_lp_matrix_h.transform_matrix;
 	h_mat_ws[2] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[2] * this->man_lp_matrix_h.transform_matrix;
-
-
-//std::cout << std::endl;
-//std::cout << "TRANSFORMATION" << std::endl;
-//std::cout << h_mat_ws[0] << std::endl;
-//std::cout << std::endl;
-//std::cout << h_mat_ws[2] << std::endl;
-//std::cout << std::endl;
-
 
 	// 3. Transform back to the global reference frame
 	for(int i=0;i<4;i++)
@@ -1844,15 +1821,11 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 		// W.R.T Core
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
 		// Evaluation
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );	// output saved 'this->man_matrix4d_h_real_ws[1]'
 
 		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;			// Inverse Transformation .. mul 1/2 ... factor-out double counting
 		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];
-		/*
-			H matrix element of 'i'th LP ? - should it be additive?
-		*/
 	}
 
 	if( type_i == "core" && type_j == "lone" )	// Core (CSL) ----> LonePairD (PI)
@@ -1866,20 +1839,17 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// W.R.T LP Density
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// Ri - ( Rj + T ) where 'i' core & 'j' LPcore (in a periodic image)
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
 		// Evalulation
 		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 
 		factor = 0.5 * C.AtomList[i]->charge * lp->lp_charge;
-
 		this->man_matrix4d_h_real_ws[1] = factor * this->man_matrix4d_h_real_ws[1];		// POSSIBLE MEMOIZATION ... (may be difficult ... since 'j' LP depends on lattice translation 'T')
 
 		// Calculate Energy Contribution by the given LP density in the periodic image and a point charge in the central sublattice
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
-
-	// Save LonePair Density Energy ...
-	C.lp_real_energy += partial_e;
+		// Save LonePair Density Energy ...
+		C.lp_real_energy += partial_e;
 	}
 
 	if( type_i == "lone" && type_j == "shel" )	// LonePairD (CSL) ----> Shell (PI)
@@ -1923,9 +1893,8 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		// Calculation Energy Contribution by the given LP density in the periodic image and the core in the central sublattice
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
-		
-	// Save LonePair Density Energy ...
-	C.lp_real_energy += partial_e;
+		// Save LonePair Density Energy ...
+		C.lp_real_energy += partial_e;
 
 		// <2> Shel W.R.T LP Density
 		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - ( C.AtomList[j]->cart + TransVector );
@@ -1938,9 +1907,8 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		// Calculation Energy Contribution by the given LP density in the periodic image and the shel in the central sublattice
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
-
-	// Save LonePair Density Energy ...
-	C.lp_real_energy += partial_e;
+		// Save LonePair Density Energy ...
+		C.lp_real_energy += partial_e;
 	}
 
 	if( type_i == "lone" && type_j == "lone" )	// i == j will not get caught when h=k=l=0 by 'if' of its wrapper
@@ -1950,7 +1918,6 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 	
 		// <1> LP(i) Density (CSL) vs LP(j) Core (PI)	.... analogy Shell - Core
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i)('in the central sublattice')  -> LP(j)('in the periodic image') core
-		//Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector);
 		// Evaluation
 		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 
@@ -1959,7 +1926,6 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 		// <2> LP(i) Core (CSL) vs LP(j) Density (PI)	.... analogy Core - Shell
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// LP(j)('in the periodic image') -> LP(j)('in the central sublattice')
-		//Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;
 		// Get LP(j) Density eigenvectors 
 		lp_cf[0] = lpj->lp_eigensolver.eigenvectors()(0,lpj->lp_gs_index).real();	// s
 		lp_cf[1] = lpj->lp_eigensolver.eigenvectors()(1,lpj->lp_gs_index).real();	// px
@@ -1973,9 +1939,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		// Calculation Energy Contribution by the given LP density in the periodic image and the LP core in the central sublattice
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++) { partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_real_ws[1](ii,jj); }}			// PartialE ... Process Required
-
-		// Save LonePair Density Energy ...
-	C.lp_real_energy += partial_e;
+		C.lp_real_energy += partial_e;
 
 		// <3> LP(i) Density vs LP(j) Density	....	ananlogy Shell - Shell
 
@@ -1983,25 +1947,11 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		////	3.A Monopolar Term	
 
 		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i) (CSL) ----> LP(j) (PI)		
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart - TransVector;
 		// Evalulation
 		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
-/*
-   std::cout << TransVector << std::endl;
-   std::cout << Rij << std::endl;
-   std::cout << Rij.norm() << std::endl;
-   for(int n=0;n<4;n++)
-   {	for(int m=0;m<4;m++)
-   { printf("%20.12e\t",this->man_matrix4d_h_real_ws[1](n,m)); } std::cout << std::endl; }
-   printf("%20.12e\n",this->man_lp_matrix_h.real_ss_pc(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma,Rij.norm()));
-
-for(int k=1;k<400;k++)
-{ printf("%20.6e\t%20.12e\t%20.12e\n",k*0.05,this->man_lp_matrix_h.real_ss_pc(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma,k*0.05),erfc((k*0.05)/C.sigma)/(k*0.05)); }
-exit(1);
-*/
 
 		factor = 0.5 * lpi->lp_charge * lpj->lp_charge;
-	this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_h_real_ws[1];
+		this->LPLP_H_Real[i][j] += factor * this->man_matrix4d_h_real_ws[1];
 		////	****************************************************************************************************
 
 		////	////	////	////	////	////	////	////	////	////	////	////	////	////
@@ -2014,15 +1964,10 @@ exit(1);
 	 
 		// Get LP(j) Density eigenvectors - Re-use 'lp_cf[0-3]'
 		// factor - Re-use 'factor = 0.5 * lpi->lp_charge * lpj->lp_charge;' above
-
 		real_pos[0] = 2.*lp_cf[0]*lp_cf[1]*lpj->lp_real_position_integral;	// 2 cs cpx	// N.B. 'lp_cf' eigenvectors of 'j' LP Density
 		real_pos[1] = 2.*lp_cf[0]*lp_cf[2]*lpj->lp_real_position_integral;	// 2 cs cpy
 		real_pos[2] = 2.*lp_cf[0]*lp_cf[3]*lpj->lp_real_position_integral;	// 2 cs cpz
-/*
-for(int k=0;k<3;k++)
-{	printf("%20.1e\t",real_pos[k]); } std::cout << std::endl;
-exit(1);
-*/
+
 		for(int ii=0;ii<4;ii++)
 		{	for(int jj=0;jj<4;jj++)
 			{
@@ -2128,9 +2073,8 @@ void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eige
 {
 	double Qi,Qj;
 	double factor;
-	Eigen::Vector3d Rij;
+	double intact;
         // TransVector = h*a + k*b + l*c
-        // Rij         = Ai.r - Aj.r - TransVector;
 
 	if( C.AtomList[i]->type == "lone" && C.AtomList[j]->type == "lone" )	// SelfEnergy by LonePair Cores
 	{
@@ -2139,21 +2083,23 @@ void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eige
 			Qi  = C.AtomList[i]->charge;
 			Qj  = C.AtomList[j]->charge;
 			C.mono_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
-
-printf("%20.12e\n",-0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV);
 		}
 		// lp self
 		Qi = static_cast<LonePair*>(C.AtomList[i])->lp_charge;
 		Qj = static_cast<LonePair*>(C.AtomList[j])->lp_charge;
-	C.lp_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
+		//C.lp_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
+		intact = -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
 
-printf("%20.12e\n",C.lp_reci_self_energy);
+		this->man_matrix4d_h_reci_self_ws.setZero();
+		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_matrix4d_h_reci_self_ws(1,1) = this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = intact;
+		
+		this->LPLP_H_Reci[i][j] += this->man_matrix4d_h_reci_self_ws;
 
-		// core - lp : self
+		// core - lp + lp - core : self
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		Qi = lpi->lp_charge;
 		Qj = C.AtomList[j]->charge;
-		factor = -0.5 * (Qi*Qj) * 2.;
+		factor = -0.5 * (Qi*Qj) * 2.;	// Fatcor '* 2.' Important 
 
 		this->man_matrix4d_h_reci_self_ws.setZero();
 
@@ -2162,14 +2108,15 @@ printf("%20.12e\n",C.lp_reci_self_energy);
 		this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);
 		this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = this->man_matrix4d_h_reci_self_ws(1,1);
 
-	this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
-
+		this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
+/*
 std::cout << "SELF !!!" << std::endl;
 printf("Pair %d\t%d\n",i,j);
 std::cout << factor * this->man_matrix4d_h_reci_self_ws << std::endl;
 printf("%20.12e\n",this->man_matrix4d_h_reci_self_ws(0,0)*factor);
 //std::cout << this->LPLP_H_Reci[i][j] << std::endl;
 //exit(1);
+*/
 	}
 
 	return;
@@ -2229,7 +2176,6 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		Qi  = lp->lp_charge;
 		Qj  = C.AtomList[j]->charge;
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2237,38 +2183,7 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		
 		// Evaluation
 		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine	// return unit ... dimensionless
-
-		//this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
 		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
-/*
-printf("%20.12lf\t%20.12lf\n",g_sqr,G.norm());
-std::cout << "Factor" << std::endl;
-printf("%20.12lf\n",factor);
-std::cout << "G vector " << std::endl;
-std::cout << G << std::endl;
-std::cout << "Gnorm" << std::endl;
-printf("%20.12lf\n",G.norm());
-std::cout << "Rij" << std::endl;
-std::cout << Rij << std::endl;
-std::cout << "Rij dot G" << std::endl;
-std::cout << Rij.adjoint() * G << std::endl;
-std::cout << "intact 0 / 1\n";
-printf("%20.12e\t%20.12e\n",intact[0],intact[1]);
-std::cout << "reci_ss\n";
-printf("%20.12e\n",this->man_matrix4d_h_reci_out[0](0,0));
-std::cout << "LP\n";
-for(int m=0;m<4;m++)
-{	for(int n=0;n<4;n++)
-	{	printf("%20.12lf\t", factor*(intact[0]*this->man_matrix4d_h_reci_out[0](m,n) - intact[1]*this->man_matrix4d_h_reci_out[1](m,n)));
-	}
-	std::cout << std::endl;
-}
-std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
-*/
-
-//if( fabs((this->man_matrix4d_h_reci_out[0](0,0))*intact[0]*factor) > 0.000001 )
-//{	exit(1);	}
-
 	}
 
 	if( type_i == "core" && type_j == "lone" )	// Core (CSL) ----> LonePairD (PI)
@@ -2284,7 +2199,6 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 		Qi  = C.AtomList[i]->charge;
 		Qj  = lp->lp_charge;
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term	// Unit (eV)
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2292,15 +2206,11 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 
 		// Evaluation
 		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-
-		//this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
 		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_reci_ws[0](ii,jj); }}			// PartialE ... Process Required
-
-	// Save LonePair Density Energy ...
-	C.lp_reci_energy += partial_e;
+		C.lp_reci_energy += partial_e;
 	}
 
 	if( type_i == "lone" && type_j == "shel" )	// LonePairD (CSL) ----> Shell (PI)
@@ -2309,8 +2219,7 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 		// <1> W.R.T CorePart (PI)
 		Qi  = lp->lp_charge;
 		Qj  = C.AtomList[j]->charge;
-		//Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
+		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2318,14 +2227,12 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 
 		// Evaluation
 		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-		
-		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
+		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		// <2> W.R.T ShelPart (PI)
 		Qi  = lp->lp_charge;
 		Qj  = static_cast<Shell*>(C.AtomList[j])->shel_charge;
 		Rij = static_cast<Shell*>(C.AtomList[j])->shel_cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - static_cast<Shell*>(C.AtomList[j])->shel_cart;	
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2333,8 +2240,7 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 
 		// Evaluation
 		//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-
-		this->LPC_H_Reci[i][j][1] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
+		this->LPC_H_Reci[i][j][1] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 	}
 
 	if( type_i == "shel" && type_j == "lone" )	// Shell (CSL) ----> LonePairD (PI)
@@ -2351,7 +2257,6 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 		Qi  = C.AtomList[i]->charge;
 		Qj  = lp->lp_charge;
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2359,20 +2264,16 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 
 		// Evaluation
 		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-
-		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
+		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_reci_ws[0](ii,jj); }}			// PartialE ... Process Required
-		
-	// Save LonePair Density Energy ...
-	C.lp_reci_energy += partial_e;
+		C.lp_reci_energy += partial_e;
 
 		// <2> Shel W.R.T LP Density
 		Qi  = static_cast<Shell*>(C.AtomList[i])->shel_charge;
 		Qj  = lp->lp_charge;
-		Rij = C.AtomList[j]->cart - static_cast<Shell*>(C.AtomList[i])->shel_cart;
-		//Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart;
+		Rij = static_cast<Shell*>(C.AtomList[i])->shel_cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
@@ -2380,14 +2281,11 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 
 		// Evaluation
 		//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-
-		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
+		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_reci_ws[0](ii,jj); }}			// PartialE ... Process Required
-
-	// Save LonePair Density Energy ...
-	C.lp_reci_energy += partial_e;
+		C.lp_reci_energy += partial_e;
 	}
 
 	if( type_i == "lone" && type_j == "lone" )	// i == j will not get caught when h=k=l=0 by 'if' of its wrapper
@@ -2404,42 +2302,36 @@ std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 		Qi  = lpi->lp_charge;
 		Qj  = C.AtomList[j]->charge;
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
 		intact[1] = sin(Rij.adjoint()*G);
 		// Evaluation
 		Manager::support_h_matrix_reci( lpj, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-		//this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
 		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		// Core LP
 		Qi  = C.AtomList[i]->charge;
 		Qj  = lpj->lp_charge;
 		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
-		//Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);
 		intact[1] = sin(Rij.adjoint()*G);
+
 		// Evaluation
 		//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-
-		//this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] + intact[1]*this->man_matrix4d_h_reci_out[1]);
 		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		partial_e = 0.;
 		for(int ii=0;ii<4;ii++){ for(int jj=0;jj<4;jj++){ partial_e += lp_cf[ii] * lp_cf[jj] * this->man_matrix4d_h_reci_ws[0](ii,jj); }}			// PartialE ... Process Required
-
-	// Save LonePair Density Energy ...
-	C.lp_reci_energy += partial_e;
+		// Save LonePair Density Energy ...
+		C.lp_reci_energy += partial_e;
 
 		// LP   LP
 		Qi  = lpi->lp_charge;
 		Qj  = lpj->lp_charge;
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
-		//Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
 
 		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
 		intact[0] = cos(Rij.adjoint()*G);

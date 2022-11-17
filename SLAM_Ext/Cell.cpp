@@ -534,7 +534,7 @@ cout << endl;
 		{	if( this->AtomList[i]->type == "lone" )
 			{
 				std::cout << " Atom[" << i << "]" << std::endl;
-				printf("GS( %d ) - Eval Evec : %12.6lf\t%12.6lf\t%12.6lf\t%12.6lf\t%12.6lf\n",
+				printf("GS( %d ) - Eval Evec : %20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\n",
 					static_cast<LonePair*>(this->AtomList[i])->lp_gs_index,
 					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real(),
 					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(0,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
@@ -554,21 +554,19 @@ cout << endl;
 
 auto ijloop_sta = std::chrono::system_clock::now();
 printf(" ######### PAIR : %d \t %d\n", i, j);
-				/*
-	
-				if( this->AtomList[j]->type == "lone" )
-				{	cout << "Eval of " << j  << " LP" << endl;
-					cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvalues() << endl;
-					cout << "Evec" << endl;
-					cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvectors() << endl;
-				}
-				*/
-				/// Debugging
 
-				//if( this->AtomList[i]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[i])->lp_gs_index << endl; exit(1); }
-				//if( this->AtomList[j]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[j])->lp_gs_index << endl; exit(1); }
-
-				/// Debugging End
+/*
+if( this->AtomList[j]->type == "lone" )
+{	cout << "Eval of " << j  << " LP" << endl;
+	cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvalues() << endl;
+	cout << "Evec" << endl;
+	cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvectors() << endl;
+}
+*/
+/// Debugging
+//if( this->AtomList[i]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[i])->lp_gs_index << endl; exit(1); }
+//if( this->AtomList[j]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[j])->lp_gs_index << endl; exit(1); }
+/// Debugging End
 
 				for(int h = -this->h_max ; h <= this->h_max ; h++)
 				{	for(int k = -this->k_max ; k <= this->k_max ; k++)

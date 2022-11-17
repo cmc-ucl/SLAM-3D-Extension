@@ -201,7 +201,7 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 	double fa, fb, dr, mesh;
 	double r,r_inc;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
+	sig = sig/TO_BOHR_RADII;	// Angstron -> a0
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -220,7 +220,7 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT; // Ha / a
+	return res*FHA_TO_FEV_UNIT;	// Ha/a0 ---> eV/Angs
 }
 
 

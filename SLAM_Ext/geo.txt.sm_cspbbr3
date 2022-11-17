@@ -1,0 +1,13 @@
+cell
+6	6	6	90	90	90
+
+atom	 0.00	 0.00	 0.00	Cs	shel	 0.00	 0.01	 0.03
+atom	 0.50	 0.50	 0.00	Br	core
+atom	 0.00	 0.50	 0.50	Br	core
+atom	 0.50	 0.00	 0.50	Br	core
+atom	 0.50	 0.50	 0.50	Pb	lone
+
+species Pb	lone	+3.00	-1.00	 14.5
+#species Cs	core	+1.00
+species Cs	shel	+1.242	-0.242	 0	 0
+species	Br	core	-1.00
