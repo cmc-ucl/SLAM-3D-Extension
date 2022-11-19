@@ -121,7 +121,7 @@ double LonePairMatrix_H::real_position_integral( const std::vector<double>& inte
 	}
 	
 	// distance unit
-	return res*TO_BOHR_RADII;
+	return res*TO_BOHR_RADII;	// Bohr ---> Angstrom
 }
 
 ////	////	////	////	////	////
@@ -417,9 +417,21 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
+//std::vector<double> abc;
+//abc.push_back(19);
+//abc.push_back(19);
+//printf("%d\n",abc.size());
+//printf("distance   (bohr): %20.12lf\n",d);
+//printf("radial end (bohr): %20.12lf\n",integral_knot[integral_knot.size()-1]);
+//printf("distance   (angs): %20.12lf\n",d*TO_BOHR_RADII);
+//printf("radial end (angs): %20.12lf\n",integral_knot[integral_knot.size()-1]*TO_BOHR_RADII);
+//printf("knot_d   : %d\n",knot_d);
+//printf("knot_end : %d\n",integral_knot.size()-1);
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		if( i != knot_d )
+		//if( i != knot_d )
+		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
 		{
 			dr   = integral_knot[i+1] - integral_knot[i];
 			mesh = grid(dr);
@@ -435,7 +447,7 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 				res += r_inc*(fa+fb)/2.;
 			}
 		}
-		else
+		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
 		{	
 			dr   = d - integral_knot[i];
 			mesh = grid(dr);
@@ -485,7 +497,8 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		if( i != knot_d )
+		//if( i != knot_d )
+		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
 		{
 			dr   = integral_knot[i+1] - integral_knot[i];
 			mesh = grid(dr);
@@ -580,7 +593,8 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		if( i != knot_d )
+		//if( i != knot_d )
+		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
 		{
 			dr   = integral_knot[i+1] - integral_knot[i];
 			mesh = grid(dr);

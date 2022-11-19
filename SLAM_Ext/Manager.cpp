@@ -3,6 +3,7 @@
 #define DERIVATIVE_CHECK
 #define SHOW_LP_MATRIX
 
+#define LPLP_CHECK
 
 void ShowMatrix( const Eigen::Matrix4d& m )
 {
@@ -13,6 +14,14 @@ void ShowMatrix( const Eigen::Matrix4d& m )
 		std::cout << std::endl;
 	}
 	return;
+}
+
+void ShowVector( const Eigen::Vector3d v )
+{
+	for(int i=0;i<3;i++)
+	{	printf("%20.12e\t",v(i));
+	}
+	std::cout << std::endl;
 }
 
 // Implement RealSpace Integrators - Input ... LonePair* / Vector to a species / sigma / IndexLonePair* / IndexSpecies
@@ -286,8 +295,9 @@ LonePair* lp = nullptr;
 int lp_id;
 
 // FDM CHECK VARS
-double delta = 0.005;
-double sig   = 1.85;
+double delta = 0.01;
+//double sig   = 1.85;
+double sig   = 1.99347;
 double g = 0.05;
 
 for(int i=0;i<C.NumberOfAtoms;i++)
@@ -315,7 +325,23 @@ double z_ss,z_xx,z_zz;
 
 cout << "Real Space Check      -----------------------------------------------------------" << endl;
 Eigen::Vector3d R;
-R << -3.2,0.52,4.3;
+//R << -3.2,0.52,4.3;
+//R << -8.4, -8.4, 0.0;
+//R << -4.2, -4.2, 0.0;
+//R << -2.1, -2.1, 0.0;
+
+//R << -3, 0, 0;		// O
+//R << -6, 0, 0;		// Err ...
+//R << 0, 0, 6;			// Err ...
+//R << 0, 0, 8;			// Err ...	// Integrals ----> Discontinuous part
+//R << 0, 0, 8;			// Err ...	// Integrals ----> Discontinuous part
+//R << 0, 0, 11.87;		// Err ...	// Integrals ----> Discontinuous part
+//R<< 0, 0, 5.844;		// Err occurs after distance goes over the radial function
+R << 0, 0, 11.87;		// Err ...	// Integrals ----> Discontinuous part
+
+// -8.4 X
+
+ShowVector(R);
 
 cout << "H Onsite" << endl;
 //this->set_h_matrix_real_pc(lp,
@@ -375,6 +401,17 @@ cout << "dy Real" << endl;
 for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_y[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
 cout << "dz Real" << endl;
 for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",this->real_lp_h_pc_z[lp_id][0](i,j)); } printf("\n"); }	// print h_matrix onsite
+
+cout << endl;
+cout << "ERROR .... (difference)" << std::endl;
+cout << "dx Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",(fdm_x(i,j) - this->real_lp_h_pc_x[lp_id][0](i,j))); } printf("\n"); }	// print h_matrix onsite
+cout << "dy Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",(fdm_y(i,j) - this->real_lp_h_pc_y[lp_id][0](i,j))); } printf("\n"); }	// print h_matrix onsite
+cout << "dz Real" << endl;
+for(int i=0;i<4;i++){ for(int j=0;j<4;j++){ printf("%14.8lf\t",(fdm_z(i,j) - this->real_lp_h_pc_z[lp_id][0](i,j))); } printf("\n"); }	// print h_matrix onsite
+
+
 
 cout << endl;
 cout << "2nd derivative FDM" << endl;
@@ -1722,6 +1759,12 @@ void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, co
 
 	// Inverse Transformation
 	h_mat_out = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws * this->man_lp_matrix_h.transform_matrix;
+
+
+	#ifdef LPLP_CHECK
+
+	#endif
+
 }
 
 void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* workspace */ Eigen::Matrix4d (&h_mat_ws)[3], /* out */ Eigen::Matrix4d (&h_mat_out)[3] )
@@ -1749,7 +1792,7 @@ for(int i=0;i<4;i++)
 	h_mat_ws[0](3,1) = h_mat_ws[0](1,3);
 
 	h_mat_ws[1](0,2) = h_mat_ws[1](2,0) = h_mat_ws[0](0,1);	// y-sy = x-sx
-	h_mat_ws[1](2,3) = h_mat_ws[1](3,2) = h_mat_ws[0](1,3);	// y-yz = x-sz
+	h_mat_ws[1](2,3) = h_mat_ws[1](3,2) = h_mat_ws[0](1,3);	// y-yz = x-xz
 
 // isnan checker
 for(int i=0;i<4;i++)
@@ -1789,6 +1832,9 @@ for(int i=0;i<4;i++)
 		}
 	}
 
+	#ifdef LPLP_CHECK
+
+	#endif
 }
 
 void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
@@ -1968,6 +2014,51 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		real_pos[1] = 2.*lp_cf[0]*lp_cf[2]*lpj->lp_real_position_integral;	// 2 cs cpy
 		real_pos[2] = 2.*lp_cf[0]*lp_cf[3]*lpj->lp_real_position_integral;	// 2 cs cpz
 
+		this->LPLP_H_Real[i][j] += factor * ( real_pos[0] * this->man_matrix4d_h_real_derivative_out[0] + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1] + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2] );
+
+#ifdef LPLP_CHECK
+Eigen::Matrix4d tmp;
+tmp.setZero();
+tmp = factor * ( real_pos[0] * this->man_matrix4d_h_real_derivative_out[0] + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1] + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2] );
+#endif
+
+
+#ifdef LPLP_CHECK
+std::cout << "LPLP+CHECK" << std::endl;
+std::cout << "Vector Rij" << std::endl;
+ShowVector(Rij);
+std::cout << "Ri" << std::endl;
+ShowVector(C.AtomList[i]->cart);
+std::cout << "Rj" << std::endl;
+ShowVector(C.AtomList[j]->cart);
+std::cout << "T vector" << std::endl;
+ShowVector(TransVector);
+
+std::cout << "Monopole Term" << std::endl;
+ShowMatrix(this->man_matrix4d_h_real_ws[1]);
+std::cout << "Dipolar X\n";
+ShowMatrix(this->man_matrix4d_h_real_derivative_out[0]);
+std::cout << "Dipolar Y\n";
+ShowMatrix(this->man_matrix4d_h_real_derivative_out[1]);
+std::cout << "Dipolar Z\n";
+ShowMatrix(this->man_matrix4d_h_real_derivative_out[2]);
+std::cout << "------------------------------------------------- TEST Rij\n";
+
+double delta = 0.05;
+std::cout << "Rij +x\n";
+Rij(0) += delta;
+Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
+Rij(0) -= delta;
+ShowMatrix(this->man_matrix4d_h_real_ws[1]);
+std::cout << "Rij -x\n";
+Rij(0) -= delta;
+Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
+Rij(0) += delta;
+ShowMatrix(this->man_matrix4d_h_real_ws[1]);
+#endif
+
+exit(1);
+/*
 		for(int ii=0;ii<4;ii++)
 		{	for(int jj=0;jj<4;jj++)
 			{
@@ -1975,11 +2066,17 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 									    + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1](ii,jj)
 									    + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2](ii,jj) );
 				// RealPos Sign Need Extra Attention
+tmp(ii,jj) += factor * (  real_pos[0] * this->man_matrix4d_h_real_derivative_out[0](ii,jj)	
+					    + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1](ii,jj)
+					    + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2](ii,jj) );
 			}
 		}
+*/
 		////	****************************************************************************************************
+//std::cout << "TEST ****************************************************************************************************" << std::endl;
+//std::cout << tmp << std::endl;
+//std::cout << "TEST ****************************************************************************************************" << std::endl;
 	}
-
 	return;
 }
 

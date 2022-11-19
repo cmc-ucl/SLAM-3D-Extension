@@ -572,10 +572,12 @@ if( this->AtomList[j]->type == "lone" )
 				{	for(int k = -this->k_max ; k <= this->k_max ; k++)
 					{	for(int l = -this->l_max ; l <= this->l_max ; l++)
 						{
+//printf("%d\t%d\t%d\n",h,k,l);
 							trans   = h*this->real_vector[0] + k*this->real_vector[1] + l*this->real_vector[2];	// T = h*a + k*b +l*c
 							//// START REAL SPACE
 							if( (trans.norm()) < this->rcut )
 							{	
+//printf("%d\t%d\t%d\n",h,k,l);
 								if( h == 0 && k == 0 && l == 0 )	// within the central sublattice
 								{	
 								    if( i != j )			// DO NOT directly compute self interaction !!
