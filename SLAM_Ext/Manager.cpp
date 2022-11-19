@@ -1,9 +1,9 @@
 #include "Manager.hpp"
 
-#define DERIVATIVE_CHECK
+//#define DERIVATIVE_CHECK
 #define SHOW_LP_MATRIX
 
-#define LPLP_CHECK
+//#define LPLP_CHECK
 
 void ShowMatrix( const Eigen::Matrix4d& m )
 {
@@ -1759,12 +1759,6 @@ void Manager::support_h_matrix_real( const LonePair* lp, const double& sigma, co
 
 	// Inverse Transformation
 	h_mat_out = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws * this->man_lp_matrix_h.transform_matrix;
-
-
-	#ifdef LPLP_CHECK
-
-	#endif
-
 }
 
 void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double& sigma, const Eigen::Vector3d& Rij, /* workspace */ Eigen::Matrix4d (&h_mat_ws)[3], /* out */ Eigen::Matrix4d (&h_mat_out)[3] )
@@ -1831,10 +1825,6 @@ for(int i=0;i<4;i++)
 			h_mat_out[2](i,j) = v_glo(2);
 		}
 	}
-
-	#ifdef LPLP_CHECK
-
-	#endif
 }
 
 void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
@@ -2015,6 +2005,7 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		real_pos[2] = 2.*lp_cf[0]*lp_cf[3]*lpj->lp_real_position_integral;	// 2 cs cpz
 
 		this->LPLP_H_Real[i][j] += factor * ( real_pos[0] * this->man_matrix4d_h_real_derivative_out[0] + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1] + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2] );
+		//MAKE SURE THE SIGN IS CORRECT!!!
 
 #ifdef LPLP_CHECK
 Eigen::Matrix4d tmp;
@@ -2055,28 +2046,10 @@ Rij(0) -= delta;
 Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 Rij(0) += delta;
 ShowMatrix(this->man_matrix4d_h_real_ws[1]);
+exit(1);
 #endif
 
-exit(1);
-/*
-		for(int ii=0;ii<4;ii++)
-		{	for(int jj=0;jj<4;jj++)
-			{
-				this->LPLP_H_Real[i][j](ii,jj) += factor * (  real_pos[0] * this->man_matrix4d_h_real_derivative_out[0](ii,jj)	
-									    + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1](ii,jj)
-									    + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2](ii,jj) );
-				// RealPos Sign Need Extra Attention
-tmp(ii,jj) += factor * (  real_pos[0] * this->man_matrix4d_h_real_derivative_out[0](ii,jj)	
-					    + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1](ii,jj)
-					    + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2](ii,jj) );
-			}
-		}
-*/
-		////	****************************************************************************************************
-//std::cout << "TEST ****************************************************************************************************" << std::endl;
-//std::cout << tmp << std::endl;
-//std::cout << "TEST ****************************************************************************************************" << std::endl;
-	}
+	}	// END lp-lp interaction if-statement
 	return;
 }
 
