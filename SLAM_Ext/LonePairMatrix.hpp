@@ -18,7 +18,6 @@
 //#define GRID_W 512		// Integral grid dense level 10^1
 //#define GRID_W 256
 #define GRID_W 128		// Integral grid dense level 10^1 .... level set for 10E-7 accuracy
-//#define GRID_W 256
 
 
 #define MIN(a,b)        ((a)>=(b)?(b):(a))

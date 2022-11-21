@@ -486,10 +486,24 @@ void Cell::CalcCoulombDerivative()
 #define LONEPAIR_SCF_TOL 10E-8
 #define LONEPAIR_DERIVATIVE_TOL 10E-8
 
+void LonePair_begin_scf()
+{
+	using std::cout; using::std::endl;
+
+	cout << "---------------------------------------------------------------------------------------------------------" << endl;
+	cout << endl;
+	cout << "    Begin SCF Cycle" << endl;
+	cout << endl;
+	printf( "    SCF Tolerance (eV / per atom) : %10.4e\n",LONEPAIR_SCF_TOL);
+	cout << endl;
+	cout << "---------------------------------------------------------------------------------------------------------" << endl;
+	return;
+}
+
 void Cell::CalcLonePairCoulombEnergy()
 {
-using std::cout;
-using std::endl;
+	using std::cout; using std::endl;
+	LonePair_begin_scf();
 
 	bool is_first_scf = true;
 	bool is_scf_done = false;
@@ -503,18 +517,7 @@ using std::endl;
 		1. Set Position Integral result (Real Space)
 		2. Set Esp parameters + Diagonalisation (setting the ground-state)	*/
 	manager.InitialiseSCF(*this);
-
-printf("sigma        : %20.12lf\n",this->sigma);
-printf("hkl  indices : %d\t%d\t%d\n",this->h_max,this->k_max,this->l_max);
-printf("rcut        : %12.6lf\n",this->rcut);
-printf("ihkl indices : %d\t%d\t%d\n",this->ih_max,this->ik_max,this->il_max);
-printf("gcut        : %12.6lf\n",this->gcut);
-printf("Lattice Matrix\n");
-cout << "             a           b          c " << endl;
-printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","x",this->lattice_matrix(0,0),this->lattice_matrix(0,1),this->lattice_matrix(0,2));
-printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","y",this->lattice_matrix(1,0),this->lattice_matrix(1,1),this->lattice_matrix(1,2));
-printf( "%5.3s%12.6lf%12.6lf%12.6lf\n","z",this->lattice_matrix(2,0),this->lattice_matrix(2,1),this->lattice_matrix(2,2));
-cout << endl;
+	// This must be modified when optimiser comes together
 
 	// SCF Loop 'n'
 	for(int n=0;n<this->scf_iter_max;n++)
@@ -523,30 +526,42 @@ cout << endl;
 			Initialise(Zeros) Cell.lp_real_energy = Cell.lp_reci_energy = Cell.lp_reci_self_energy = Cell.lp_total_energy = 0;	*/
 		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
-cout << "********************************************************\n";
-cout << "SCF CNT : " << n+1 << " / is first scf : " << is_first_scf << endl;
-cout << endl;
-
-		
-		/// LONE PAIR DENSITY PROFILE
-		std::cout << "LONE PAIR INFO TMP--------------------------------------------" << std::endl;
-		for(int i=0;i<this->NumberOfAtoms;i++)
-		{	if( this->AtomList[i]->type == "lone" )
+	cout << endl;
+	cout << "   SCF Cycle : " << n+1 << endl;
+	cout << endl;
+	cout << "---------------------------------------------------------------------------------------------------------" << endl;
+	cout << endl;
+	cout << "   Lone Pair Information ('*' ground state)" << endl;
+	cout << endl;
+	for(int i=0;i<this->NumberOfAtoms;i++)
+	{	if( this->AtomList[i]->type == "lone" )
+		{
+			cout << "    " << this->AtomList[i]->species << " (" << i << ")" << endl;
+			cout << endl;
+			cout << "    Eigenvalues (eV) |  Eigenvectors [ s, px, py, pz ]" << endl;
+			cout << endl;
+			for(int j=0;j<4;j++)
 			{
-				std::cout << " Atom[" << i << "]" << std::endl;
-				printf("GS( %d ) - Eval Evec : %20.12e\t%20.12e\t%20.12e\t%20.12e\t%20.12e\n",
-					static_cast<LonePair*>(this->AtomList[i])->lp_gs_index,
-					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvalues()[static_cast<LonePair*>(this->AtomList[i])->lp_gs_index].real(),
-					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(0,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
-					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(1,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
-					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(2,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real(),
-					static_cast<LonePair*>(this->AtomList[i])->lp_eigensolver.eigenvectors()(3,static_cast<LonePair*>(this->AtomList[i])->lp_gs_index).real());
-			}
+				if( j != static_cast<LonePair*>(this->AtomList[i])->GetGSIndex() )
+				{	printf("   %s%14.9e  |\t",static_cast<LonePair*>(this->AtomList[i])->GetEval(j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEval(j));
+					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j));
+					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j));
+					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j));
+					printf("%s%12.6e\n",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j));	}
+				else
+				{	printf(" * %s%14.9e  |\t",static_cast<LonePair*>(this->AtomList[i])->GetEval(j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEval(j));
+					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j));
+					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j));
+					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j));
+					printf("%s%12.6e\n",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j));	}
+			} 
+			cout << endl;
 		}
-		std::cout << "--------------------------------------------------------------" << std::endl;
-				
+	}
+	cout << "---------------------------------------------------------------------------------------------------------" << endl;
+	//cout << "*********************************************************************************************************" << endl;
 
-		auto start = std::chrono::system_clock::now();
+auto start = std::chrono::system_clock::now();
 
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
@@ -555,29 +570,14 @@ cout << endl;
 auto ijloop_sta = std::chrono::system_clock::now();
 printf(" ######### PAIR : %d \t %d\n", i, j);
 
-/*
-if( this->AtomList[j]->type == "lone" )
-{	cout << "Eval of " << j  << " LP" << endl;
-	cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvalues() << endl;
-	cout << "Evec" << endl;
-	cout << static_cast<LonePair*>(this->AtomList[j])->lp_eigensolver.eigenvectors() << endl;
-}
-*/
-/// Debugging
-//if( this->AtomList[i]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[i])->lp_gs_index << endl; exit(1); }
-//if( this->AtomList[j]->type == "lone" ) { cout << static_cast<LonePair*>(this->AtomList[j])->lp_gs_index << endl; exit(1); }
-/// Debugging End
-
 				for(int h = -this->h_max ; h <= this->h_max ; h++)
 				{	for(int k = -this->k_max ; k <= this->k_max ; k++)
 					{	for(int l = -this->l_max ; l <= this->l_max ; l++)
 						{
-//printf("%d\t%d\t%d\n",h,k,l);
 							trans   = h*this->real_vector[0] + k*this->real_vector[1] + l*this->real_vector[2];	// T = h*a + k*b +l*c
 							//// START REAL SPACE
 							if( (trans.norm()) < this->rcut )
 							{	
-//printf("%d\t%d\t%d\n",h,k,l);
 								if( h == 0 && k == 0 && l == 0 )	// within the central sublattice
 								{	
 								    if( i != j )			// DO NOT directly compute self interaction !!
@@ -607,10 +607,9 @@ cout << wtime.count() << " s - Real Space \n";
 		}// end i
 
 cout << " --------- REAL DONE " << endl;
-		auto end = std::chrono::system_clock::now();
+auto end = std::chrono::system_clock::now();
 		//
-
-		start = std::chrono::system_clock::now();
+start = std::chrono::system_clock::now();
 	  
 cout << " --------- RECI START " << endl;
 
@@ -909,12 +908,12 @@ void Cell::ShowBasicCellInfo() const
 	cout << endl;
 	cout << "---------------------------------------------------------------------------------------------------------\n";
 	cout << endl;
-	cout << "    Sigma      : " << std::setprecision(6) << this->sigma  << endl;
-	cout << "    Weight     : " << std::setprecision(6) << this->weight << endl;
-	cout << "    Rcut       : " << std::setprecision(6) << this->rcut   << endl;
-	cout << "    Gcut       : " << std::setprecision(6) << this->gcut   << endl;
-	cout << "    hkl (real) : " << std::setprecision(6) << this->h_max << " " << this->k_max << " " << this->l_max << endl;
-	cout << "    hkl (reci) : " << std::setprecision(6) << this->ih_max << " " << this->ik_max << " " << this->il_max << endl;
+	cout << "    Sigma  (Angs)   : " << std::setprecision(6) << this->sigma  << endl;
+	cout << "    Weight          : " << std::setprecision(6) << this->weight << endl;
+	cout << "    Rcut   (Angs)   : " << std::setprecision(6) << this->rcut   << endl;
+	cout << "    Gcut   (Angs-1) : " << std::setprecision(6) << this->gcut   << endl;
+	cout << "    hkl    (real)   : " << std::setprecision(6) << this->h_max << " " << this->k_max << " " << this->l_max << endl;
+	cout << "    hkl    (reci)   : " << std::setprecision(6) << this->ih_max << " " << this->ik_max << " " << this->il_max << endl;
 	cout << endl;
 	cout << "---------------------------------------------------------------------------------------------------------\n";
 	cout << "*********************************************************************************************************\n";

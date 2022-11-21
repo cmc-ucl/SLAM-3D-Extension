@@ -1,7 +1,7 @@
 #include "Manager.hpp"
 
 //#define DERIVATIVE_CHECK
-#define SHOW_LP_MATRIX
+//#define SHOW_LP_MATRIX
 
 //#define LPLP_CHECK
 
@@ -1613,7 +1613,8 @@ void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
 	}
 
 	//C.energy_real_sum_cnt = 0;	//C.energy_reci_sum_cnt = 0;
-	C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
+	//C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
+	C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_total_energy = 0.;
 } 
 
 void Manager::GetLonePairGroundState( Cell& C )	// Including Matrix Diagonalisaion + SetGroundState Index
@@ -1697,6 +1698,7 @@ ShowMatrix(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix_tmp);
 			
 			lp_scf_sum += lp->lp_eigensolver.eigenvalues()(lp->lp_gs_index).real();
 
+#ifdef SHOW_LP_INFO
 std::cout << "---------------- AFTER Diagonalisation LP label : " << i << std::endl;
 printf("H matrix ... \n");
 ShowMatrix(static_cast<LonePair*>(C.AtomList[i])->lp_h_matrix);
@@ -1704,6 +1706,7 @@ printf("EigenValues  ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvalues() << std::endl;
 printf("EigenVectors ... \n");
 std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors() << std::endl;
+#endif
 
 		}
 	}
@@ -1712,11 +1715,13 @@ std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors(
 	this->man_scf_lp_real_energy.push_back(C.lp_real_energy);
 	this->man_scf_lp_reci_energy.push_back(C.lp_reci_energy);
 
+#ifdef SHOW_LP_INFO
 printf("!! Accumulated scf evals / lp_real_energies\n");
 for(int i=0;i<this->man_scf_vec.size();i++)
 {
 	printf("%d \t %20.12e\t%20.12e\t%20.12e\n",i+1,this->man_scf_vec[i],this->man_scf_lp_real_energy[i],this->man_scf_lp_reci_energy[i]);
 }
+#endif
 
 }// function end;
 
@@ -1767,15 +1772,14 @@ void Manager::support_h_matrix_real_derivative( const LonePair* lp, const double
 
 	this->man_lp_matrix_h.GetTransformationMatrix(Rij);
 
-// isnan checker
+#ifdef ISNAN
 for(int i=0;i<4;i++)
 {	for(int j=0;j<4;j++)
 	{	if( std::isnan( this->man_lp_matrix_h.transform_matrix(i,j) ) )
 		{	printf("transform isnan %20.12e\n",Rij.norm()); 
-			printf("%20.12e\t%20.12e\t%20.12e\n",Rij[0],Rij[1],Rij[2]);
-			exit(1);
-		}
-}}
+			printf("%20.12e\t%20.12e\t%20.12e\n",Rij[0],Rij[1],Rij[2]); exit(1);
+}}}
+#endif
 
 	h_mat_ws[0].setZero(); h_mat_ws[1].setZero(); h_mat_ws[2].setZero();	// 1st derivatives ... w.r.t. 'j' of Ri -> Rj // dx dy dz - workspace
 
@@ -1788,12 +1792,13 @@ for(int i=0;i<4;i++)
 	h_mat_ws[1](0,2) = h_mat_ws[1](2,0) = h_mat_ws[0](0,1);	// y-sy = x-sx
 	h_mat_ws[1](2,3) = h_mat_ws[1](3,2) = h_mat_ws[0](1,3);	// y-yz = x-xz
 
-// isnan checker
+#ifdef ISNAN
 for(int i=0;i<4;i++)
 {	for(int j=0;j<4;j++)
 	{	if( std::isnan( h_mat_ws[0](i,j) ) )
 		{	printf("x isnan %d\t%d\n",i,j);	exit(1);
 }}}
+#endif
 	h_mat_ws[2](0,0) = this->man_lp_matrix_h.real_ss_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 	h_mat_ws[2](0,3) = this->man_lp_matrix_h.real_sz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 	h_mat_ws[2](3,0) = h_mat_ws[2](0,3);
@@ -1801,13 +1806,13 @@ for(int i=0;i<4;i++)
 	h_mat_ws[2](2,2) = h_mat_ws[2](1,1);
 	h_mat_ws[2](3,3) = this->man_lp_matrix_h.real_zz_grad_z_pc(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,sigma,Rij.norm());
 
-// isnan checker
+#ifdef ISNAN
 for(int i=0;i<4;i++)
 {	for(int j=0;j<4;j++)
 	{	if( std::isnan( h_mat_ws[2](i,j) ) )
 		{	printf("z isnan %d\t%d\n",i,j); exit(1);
 }}}
-
+#endif
 	// 2. Using the local elements; compute equivalent elements (in the global) in the local reference frame
 	// note : h_tmp_*_ws are in the local reference frame, their x'/y'/z' element (local) has to be inversed to x/y/z (global) 
 	h_mat_ws[0] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[0] * this->man_lp_matrix_h.transform_matrix;
@@ -2008,13 +2013,6 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		//MAKE SURE THE SIGN IS CORRECT!!!
 
 #ifdef LPLP_CHECK
-Eigen::Matrix4d tmp;
-tmp.setZero();
-tmp = factor * ( real_pos[0] * this->man_matrix4d_h_real_derivative_out[0] + real_pos[1] * this->man_matrix4d_h_real_derivative_out[1] + real_pos[2] * this->man_matrix4d_h_real_derivative_out[2] );
-#endif
-
-
-#ifdef LPLP_CHECK
 std::cout << "LPLP+CHECK" << std::endl;
 std::cout << "Vector Rij" << std::endl;
 ShowVector(Rij);
@@ -2035,17 +2033,6 @@ std::cout << "Dipolar Z\n";
 ShowMatrix(this->man_matrix4d_h_real_derivative_out[2]);
 std::cout << "------------------------------------------------- TEST Rij\n";
 
-double delta = 0.05;
-std::cout << "Rij +x\n";
-Rij(0) += delta;
-Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
-Rij(0) -= delta;
-ShowMatrix(this->man_matrix4d_h_real_ws[1]);
-std::cout << "Rij -x\n";
-Rij(0) -= delta;
-Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
-Rij(0) += delta;
-ShowMatrix(this->man_matrix4d_h_real_ws[1]);
 exit(1);
 #endif
 
@@ -2154,39 +2141,26 @@ void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eige
 			Qj  = C.AtomList[j]->charge;
 			C.mono_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
 		}
-		// lp self
+
+		// (1) - LP Electron Self Energy
 		Qi = static_cast<LonePair*>(C.AtomList[i])->lp_charge;
 		Qj = static_cast<LonePair*>(C.AtomList[j])->lp_charge;
-		//C.lp_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
 		intact = -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
-
 		this->man_matrix4d_h_reci_self_ws.setZero();
 		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_matrix4d_h_reci_self_ws(1,1) = this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = intact;
-		
 		this->LPLP_H_Reci[i][j] += this->man_matrix4d_h_reci_self_ws;
 
-		// core - lp + lp - core : self
+		// (2) - LP Electron::Core, Core::LP Electron Self Energy
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		Qi = lpi->lp_charge;
 		Qj = C.AtomList[j]->charge;
 		factor = -0.5 * (Qi*Qj) * 2.;	// Fatcor '* 2.' Important 
-
 		this->man_matrix4d_h_reci_self_ws.setZero();
-
-		// Evaluation
-		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_lp_matrix_h.reci_self_integral_ss(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);
-		this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);
+		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_lp_matrix_h.reci_self_integral_ss(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);	// ss		  Component
+		this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);	// xx == yy == zz Component
 		this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = this->man_matrix4d_h_reci_self_ws(1,1);
-
-		this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
-/*
-std::cout << "SELF !!!" << std::endl;
-printf("Pair %d\t%d\n",i,j);
-std::cout << factor * this->man_matrix4d_h_reci_self_ws << std::endl;
-printf("%20.12e\n",this->man_matrix4d_h_reci_self_ws(0,0)*factor);
-//std::cout << this->LPLP_H_Reci[i][j] << std::endl;
-//exit(1);
-*/
+		//this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
+		this->LPC_H_Reci[i][j][0] += factor * this->man_matrix4d_h_reci_self_ws;
 	}
 
 	return;
@@ -2211,17 +2185,6 @@ void Manager::support_h_matrix_reci( const LonePair* lp, const Eigen::Vector3d& 
 	// Inverse Transformation
 	h_mat_out[0] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[0] * this->man_lp_matrix_h.transform_matrix;	// Cos
 	h_mat_out[1] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[1] * this->man_lp_matrix_h.transform_matrix;	// Sin
-
-
-//for(int k=1;k<400;k++)
-//{ printf("%20.6e\t%20.12e\n",k*0.05,this->man_lp_matrix_h.reci_ss_cos(lp->lp_r,lp->lp_r_s_function,lp->lp_r_p_function,k*0.05)); }
-//exit(1);
-//for(int i=0;i<3;i++){ printf("%20.12e\t",G(i)); }
-//std::cout << std::endl;
-//printf("%20.12e\t",G.norm());
-//std::cout << std::endl;
-//exit(1);
-
 }
 
 void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen::Vector3d& G )
