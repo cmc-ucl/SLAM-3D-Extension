@@ -91,9 +91,10 @@ Eigen::Matrix4d LPLP_H_Real[MX_C][MX_C];	// Save Monopolar Contribution LP <--->
 Eigen::Matrix4d LPC_H_Reci[MX_C][MX_C][2];	// same convention ... if 'i=j' with h'=k'=l' - reciprocal self (i.e., lone pair electron interacting with its core in the central sublattice)
 Eigen::Matrix4d LPLP_H_Reci[MX_C][MX_C];
 
-std::vector<double> man_scf_vec;		// For the Use of SCF
+std::vector<double> man_scf_lp_eval;		// For the Use of SCF
 std::vector<double> man_scf_lp_real_energy;
 std::vector<double> man_scf_lp_reci_energy;
+std::vector<double> man_scf_lp_total_energy;
 LonePairMatrix_H man_lp_matrix_h;	// LonePairMatrix_H : Instance ... managing solving integration tools
 
 public:
@@ -124,6 +125,7 @@ void InitialiseLonePairCalculation_Derivatives( Cell& C );
 
 void InitialiseSCF( Cell& C );
 bool IsSCFDone( const double tol );
+void PrintSCFProfile( Cell& C );
 
 void GetLonePairGroundState( Cell& C );
 

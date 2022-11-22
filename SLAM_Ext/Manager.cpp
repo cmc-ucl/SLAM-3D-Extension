@@ -2,8 +2,8 @@
 
 //#define DERIVATIVE_CHECK
 //#define SHOW_LP_MATRIX
-
 //#define LPLP_CHECK
+//#define SCF_LOG_DEBUG
 
 void ShowMatrix( const Eigen::Matrix4d& m )
 {
@@ -1591,9 +1591,10 @@ void Manager::InitialiseSCF( Cell& C )
 		}
 	}
 
-	this->man_scf_vec.clear(); 	// Clear man_scf_vec "Manager_Vector" ... man_scf_vec.size() = 0
+	this->man_scf_lp_eval.clear(); 
 	this->man_scf_lp_real_energy.clear();
 	this->man_scf_lp_reci_energy.clear();
+	this->man_scf_lp_total_energy.clear();
 }
 
 void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
@@ -1612,8 +1613,6 @@ void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
 		}
 	}
 
-	//C.energy_real_sum_cnt = 0;	//C.energy_reci_sum_cnt = 0;
-	//C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_reci_self_energy = C.lp_total_energy = 0.;
 	C.lp_eval_sum = C.lp_real_energy = C.lp_reci_energy = C.lp_total_energy = 0.;
 } 
 
@@ -1711,15 +1710,19 @@ std::cout << static_cast<LonePair*>(C.AtomList[i])->lp_eigensolver.eigenvectors(
 		}
 	}
 	C.lp_eval_sum = lp_scf_sum;
-	this->man_scf_vec.push_back(lp_scf_sum);	// Logging CycSum
+	C.lp_total_energy = C.lp_eval_sum + C.lp_real_energy + C.lp_reci_energy;
+
+	this->man_scf_lp_eval.push_back(C.lp_eval_sum);	// Logging CycSum .. i.e., eval_sum
 	this->man_scf_lp_real_energy.push_back(C.lp_real_energy);
 	this->man_scf_lp_reci_energy.push_back(C.lp_reci_energy);
+	this->man_scf_lp_total_energy.push_back(C.lp_total_energy);
 
-#ifdef SHOW_LP_INFO
+
+#ifdef SCF_LOG_DEBUG
 printf("!! Accumulated scf evals / lp_real_energies\n");
-for(int i=0;i<this->man_scf_vec.size();i++)
+for(int i=0;i<this->man_scf_lp_eval.size();i++)
 {
-	printf("%d \t %20.12e\t%20.12e\t%20.12e\n",i+1,this->man_scf_vec[i],this->man_scf_lp_real_energy[i],this->man_scf_lp_reci_energy[i]);
+	printf("%d \t %20.12e\t%20.12e\t%20.12e\n",i+1,this->man_scf_lp_eval[i],this->man_scf_lp_real_energy[i],this->man_scf_lp_reci_energy[i]);
 }
 #endif
 
@@ -1727,19 +1730,21 @@ for(int i=0;i<this->man_scf_vec.size();i++)
 
 bool Manager::IsSCFDone( const double tol )			// Check If SCF Converged
 {
-	if( this->man_scf_vec.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
+	if( this->man_scf_lp_eval.size() < 2 )	// i.e., IF THIS IS THE 'FIRST SCF CYCLE'
 	{	return false;
 	}
 	else	// IF IS THE CYCLES AFTHER THE FIRST
-	{	if( fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
-		else
-		{ 	//this->man_scf_vec.claer();
-/*
-printf("Last / 2nd Last Energies : %20.12e\t%20.12e\n",this->man_scf_vec[this->man_scf_vec.size()-1],this->man_scf_vec[this->man_scf_vec.size()-2]);
-printf("Delta                    : %20.12e\n",fabs(this->man_scf_vec[this->man_scf_vec.size()-1] - this->man_scf_vec[this->man_scf_vec.size()-2]));
-*/
-			return true; 
-		}
+	{	if( fabs(this->man_scf_lp_eval[this->man_scf_lp_eval.size()-1] - this->man_scf_lp_eval[this->man_scf_lp_eval.size()-2]) > tol ) { return false; } // IF THE RECENT ENERGY PAIR DIFFERENCE IS LESS THAN THE TOLERANCE
+		else{ return true; }
+	}
+}
+
+void Manager::PrintSCFProfile( Cell& C )
+{	
+	for(int i=0;i<this->man_scf_lp_eval.size();i++)
+	{	
+		printf("   SCF(%d)\t%14.9lf\t%14.9lf\t%14.9lf\t%14.9lf\t%14.9lf\n",i+1,this->man_scf_lp_total_energy[i] + C.mono_total_energy,this->man_scf_lp_total_energy[i],
+									this->man_scf_lp_eval[i],this->man_scf_lp_real_energy[i],this->man_scf_lp_reci_energy[i]);
 	}
 }
 
