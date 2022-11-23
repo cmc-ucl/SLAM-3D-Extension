@@ -361,6 +361,8 @@ public:
 	}
 
 	int GetGSIndex() { return this->lp_gs_index; }
+	double GetEval( const int i ){ return this->lp_eigensolver.eigenvalues()[i].real(); }
+	double GetEvec( const int i, const int j ){ return this->lp_eigensolver.eigenvectors()(i,j).real(); }
 
 	virtual ~LonePair()
 	{

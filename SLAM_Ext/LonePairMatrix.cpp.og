@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include <omp.h>
-#define NUM_OMP_THREAD 4
 
 #include "LonePairMatrix.hpp"
 
@@ -34,7 +33,6 @@ int LonePairMatrix::b_search( const double dist, const std::vector<double>& inte
 }
 
 const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( const Eigen::Vector3d& Rij )
-//const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( Eigen::Vector3d& Rij )
 {                                                               // reserved for : Cell.lp_transformation_matrix, AtomList[i/j]->cart, static_cast<Shell*>(AtomList[i/j])->shel_cart,
         //Eigen::Vector3d Rij = cart_i - cart_j;
         //Eigen::Vector3d Rij = cart_j - cart_i;                  // Using This Convention ... Must follow that 'cart_i' has to be a core position of LonePair of interest
@@ -50,14 +48,12 @@ const Eigen::Matrix4d& LonePairMatrix::GetTransformationMatrix( const Eigen::Vec
 
         this->transform_matrix(0,0) = 1.;
 
-        //if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )                    // if vector 'Rij' is on z-axis
-        if( ( fabs(Rij(0)) < 10E-11 ) && ( fabs(Rij(1)) < 10E-11 ) && (Rij(2) > 0) )                    // if vector 'Rij' is on z-axis
+        if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) > 0) )                    // if vector 'Rij' is on z-axis
         {       this->transform_matrix(1,1) = 1.;
                 this->transform_matrix(2,2) = 1.;
                 this->transform_matrix(3,3) = 1.;                             // set lower-right block 3x3 matrix as I
         }
-        //else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )               // if vector 'Rij' is on negative z-axis
-        else if( ( fabs(Rij(0)) < 10E-11 ) && ( fabs(Rij(1)) < 10E-11 ) && (Rij(2) < 0) )               // if vector 'Rij' is on negative z-axis
+        else if( (Rij(0) == 0) && (Rij(1) == 0) && (Rij(2) < 0) )               // if vector 'Rij' is on negative z-axis
         {       this->transform_matrix(1,1) = 1.;
                 this->transform_matrix(2,2) = 1.;
                 this->transform_matrix(3,3) =-1.;                             // set the matrix has xy-plane reflection
@@ -121,7 +117,7 @@ double LonePairMatrix_H::real_position_integral( const std::vector<double>& inte
 	}
 	
 	// distance unit
-	return res*TO_BOHR_RADII;	// Bohr ---> Angstrom
+	return res*TO_BOHR_RADII;
 }
 
 ////	////	////	////	////	////
@@ -130,22 +126,20 @@ double LonePairMatrix_H::real_position_integral( const std::vector<double>& inte
 
 ///	////	////	////	////	////
 
-double LonePairMatrix_H::reci_self_integral_ss( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig )
+double LonePairMatrix_H::reci_self_integral_ss( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;	
-
+	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		dr   = integral_knot[i+1] - integral_knot[i];
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*erf(r/sig)/r;
@@ -155,17 +149,16 @@ double LonePairMatrix_H::reci_self_integral_ss( const std::vector<double>& integ
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT;
+	return res;
 }
 
 // xx = yy = zz
-double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig )
+double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;	
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -173,8 +166,7 @@ double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integ
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*erf(r/sig)/r;
@@ -184,7 +176,7 @@ double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integ
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT;
+	return res;
 }
 
 ////	////	////	////	////	////
@@ -195,13 +187,12 @@ double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integ
 
 ////	////	////	////	////	////
 //((2*r)/(pow(M_E,pow(r,2)/pow(sig,2))*sqrt(M_PI)*sig) - erf(r/sig))/(sqrt(3)*pow(r,2))
-double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig )
+double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;	// Angstron -> a0
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -209,8 +200,7 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*(((2*r)/(pow(M_E,pow(r,2)/pow(sig,2))*sqrt(M_PI)*sig) - erf(r/sig))/(sqrt(3)*pow(r,2)));
@@ -220,7 +210,7 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 		}
 	}
 	// eV Unit
-	return res*FHA_TO_FEV_UNIT;	// Ha/a0 ---> eV/Angs
+	return res; // Ha / a
 }
 
 
@@ -231,23 +221,20 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 
 ////	////	////	////	////	////
 
-double LonePairMatrix_H::real_ss_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_ss_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
-
+	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		dr   = integral_knot[i+1] - integral_knot[i];
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_ss(sig,r,d);
@@ -257,17 +244,15 @@ double LonePairMatrix_H::real_ss_pc( const std::vector<double>& integral_knot, c
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_sz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_sz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -275,8 +260,7 @@ double LonePairMatrix_H::real_sz_pc( const std::vector<double>& integral_knot, c
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 		
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_sz(sig,r,d);
@@ -286,17 +270,15 @@ double LonePairMatrix_H::real_sz_pc( const std::vector<double>& integral_knot, c
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -304,8 +286,7 @@ double LonePairMatrix_H::real_xx_pc( const std::vector<double>& integral_knot, c
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 		
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_xx(sig,r,d);
@@ -315,17 +296,15 @@ double LonePairMatrix_H::real_xx_pc( const std::vector<double>& integral_knot, c
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -333,8 +312,7 @@ double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, c
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 		
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_zz(sig,r,d);
@@ -344,17 +322,15 @@ double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, c
 		}
 	}
 	// eV Unit
-	return res*HA_TO_EV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -362,8 +338,7 @@ double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 		
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_sx(sig,r,d);
@@ -373,17 +348,15 @@ double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_
 		}
 	}
 	// eV Unit
-	return res*FHA_TO_FEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_xz_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4],  double sig, double d )
+double LonePairMatrix_H::real_xz_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -391,8 +364,7 @@ double LonePairMatrix_H::real_xz_grad_x_pc( const std::vector<double>& integral_
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 		
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_xz(sig,r,d);
@@ -402,43 +374,27 @@ double LonePairMatrix_H::real_xz_grad_x_pc( const std::vector<double>& integral_
 		}
 	}
 	// eV Unit
-	return res*FHA_TO_FEV_UNIT;
+	return res;
 }
 
-//double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, double d )
-double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
-//std::vector<double> abc;
-//abc.push_back(19);
-//abc.push_back(19);
-//printf("%d\n",abc.size());
-//printf("distance   (bohr): %20.12lf\n",d);
-//printf("radial end (bohr): %20.12lf\n",integral_knot[integral_knot.size()-1]);
-//printf("distance   (angs): %20.12lf\n",d*TO_BOHR_RADII);
-//printf("radial end (angs): %20.12lf\n",integral_knot[integral_knot.size()-1]*TO_BOHR_RADII);
-//printf("knot_d   : %d\n",knot_d);
-//printf("knot_end : %d\n",integral_knot.size()-1);
-
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		//if( i != knot_d )
-		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
+		if( i != knot_d )
 		{
 			dr   = integral_knot[i+1] - integral_knot[i];
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
-	
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+		
+			for(int k=0;k<mesh;k++)
 			{
 				r  = integral_knot[i] + k * r_inc;
 				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss(sig,r,d);
@@ -447,14 +403,13 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 				res += r_inc*(fa+fb)/2.;
 			}
 		}
-		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
+		else
 		{	
 			dr   = d - integral_knot[i];
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = integral_knot[i] + k * r_inc;
 				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss_left(sig,r,d);
@@ -467,8 +422,7 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = d + k * r_inc;
 				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss_right(sig,r,d);
@@ -478,34 +432,29 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 			}
 		}
 	}
-	// eV Unit
-	if( std::isnan(res) ){	printf("ss grad z - isnan\n"); exit(1); }
 
-	return res*FHA_TO_FEV_UNIT;
+	// eV Unit
+	return res;
 }
 
-double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		//if( i != knot_d )
-		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
+		if( i != knot_d )
 		{
 			dr   = integral_knot[i+1] - integral_knot[i];
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 		
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = integral_knot[i] + k * r_inc;
 				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz(sig,r,d);
@@ -520,8 +469,7 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = integral_knot[i] + k * r_inc;
 				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz_left(sig,r,d);
@@ -534,8 +482,7 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = d + k * r_inc;
 				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz_right(sig,r,d);
@@ -545,19 +492,17 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 			}
 		}
 	}
-	if( std::isnan(res) ){	printf("sz grad z - isnan\n"); exit(1); }
+
 	// eV Unit
-	return res*FHA_TO_FEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -565,8 +510,7 @@ double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 		
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-		for(int k=0;k<(int)mesh;k++)
+		for(int k=0;k<mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
 			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_xx(sig,r,d);
@@ -576,32 +520,28 @@ double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_
 		}
 	}
 	// eV Unit
-	return res*FHA_TO_FEV_UNIT;
+	return res;
 }
 
 
-double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		//if( i != knot_d )
-		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
+		if( i != knot_d )
 		{
 			dr   = integral_knot[i+1] - integral_knot[i];
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 		
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = integral_knot[i] + k * r_inc;
 				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz(sig,r,d);
@@ -616,8 +556,7 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = integral_knot[i] + k * r_inc;
 				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz_left(sig,r,d);
@@ -630,8 +569,7 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 			mesh = grid(dr);
 			r_inc= dr/static_cast<double>(mesh);
 
-			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-			for(int k=0;k<(int)mesh;k++)
+			for(int k=0;k<mesh;k++)
 			{
 				r  = d + k * r_inc;
 				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz_right(sig,r,d);
@@ -641,9 +579,9 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 			}
 		}
 	}
-	if( std::isnan(res) ){	printf("zz grad z - isnan\n"); exit(1); }
+
 	// eV Unit
-	return res*FHA_TO_FEV_UNIT;
+	return res;
 }
 
 ////	////	////	////	////	////
@@ -652,20 +590,12 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 
 ////	////	////	////	////	////
 
-//double et = -omp_get_wtime();
-//et += omp_get_wtime();
-//printf("calculated val : %20.12lf\n",res);
-//printf("elapsed time   : %20.12lf\n",et);
-//exit(1);
-
-double LonePairMatrix_H::real_ss_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_ss_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -684,17 +614,15 @@ double LonePairMatrix_H::real_ss_grad2_xx_pc( const std::vector<double>& integra
 	}
 
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_sz_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_sz_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -713,17 +641,15 @@ double LonePairMatrix_H::real_sz_grad2_xx_pc( const std::vector<double>& integra
 	}
 
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_xx_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_xx_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -741,17 +667,15 @@ double LonePairMatrix_H::real_xx_grad2_xx_pc( const std::vector<double>& integra
 		}
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_yy_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_yy_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -769,17 +693,15 @@ double LonePairMatrix_H::real_yy_grad2_xx_pc( const std::vector<double>& integra
 		}
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_zz_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_zz_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -797,17 +719,15 @@ double LonePairMatrix_H::real_zz_grad2_xx_pc( const std::vector<double>& integra
 		}
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_xy_grad2_xy_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_xy_grad2_xy_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -825,19 +745,17 @@ double LonePairMatrix_H::real_xy_grad2_xy_pc( const std::vector<double>& integra
 		}
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
 ////	Derivative XZ
 
-double LonePairMatrix_H::real_sx_grad2_xz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_sx_grad2_xz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -855,17 +773,15 @@ double LonePairMatrix_H::real_sx_grad2_xz_pc( const std::vector<double>& integra
 		}
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_xz_grad2_xz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_xz_grad2_xz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -883,19 +799,17 @@ double LonePairMatrix_H::real_xz_grad2_xz_pc( const std::vector<double>& integra
 		}
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
 ////	Derivative ZZ
 
-double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
@@ -949,18 +863,16 @@ double LonePairMatrix_H::real_ss_grad2_zz_pc( const std::vector<double>& integra
 	}
 
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
 
-double LonePairMatrix_H::real_sz_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_sz_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
@@ -1014,18 +926,16 @@ double LonePairMatrix_H::real_sz_grad2_zz_pc( const std::vector<double>& integra
 	}
 
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
 
-double LonePairMatrix_H::real_xx_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_xx_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
@@ -1045,17 +955,15 @@ double LonePairMatrix_H::real_xx_grad2_zz_pc( const std::vector<double>& integra
 		// 
 	}
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
-double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
+double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, const double d )
 {
 	double res = 0.;
 	double fa, fb, dr, mesh;
 	double r,r_inc;
-	d = d/TO_BOHR_RADII;
 	// Distance to Bohr
-	sig = sig/TO_BOHR_RADII;
 
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
@@ -1109,7 +1017,7 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 	}
 
 	// eV Unit
-	return res*FFHA_TO_FFEV_UNIT;
+	return res;
 }
 
 
@@ -1122,13 +1030,11 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 ////	Cosine Part
 
 //	Integral ss
-double LonePairMatrix_H::reci_ss_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_ss_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1137,8 +1043,7 @@ double LonePairMatrix_H::reci_ss_cos( const std::vector<double>& integral_knot, 
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_reci_ss_cos(r,g);
@@ -1149,18 +1054,16 @@ double LonePairMatrix_H::reci_ss_cos( const std::vector<double>& integral_knot, 
 
                 // 
         }
-        // Dimensionless ..
-        return res;	
+        // eV Unit
+        return res;
 }
 
 //	Integral xx <=> yy
-double LonePairMatrix_H::reci_xx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_xx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1169,8 +1072,7 @@ double LonePairMatrix_H::reci_xx_cos( const std::vector<double>& integral_knot, 
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_xx_cos(r,g);
@@ -1181,18 +1083,16 @@ double LonePairMatrix_H::reci_xx_cos( const std::vector<double>& integral_knot, 
 
                 // 
         }
-        // Dimensionless
+        // eV Unit
         return res;
 }
 
 //	Integral zz
-double LonePairMatrix_H::reci_zz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_zz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1201,8 +1101,7 @@ double LonePairMatrix_H::reci_zz_cos( const std::vector<double>& integral_knot, 
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_zz_cos(r,g);
@@ -1213,20 +1112,18 @@ double LonePairMatrix_H::reci_zz_cos( const std::vector<double>& integral_knot, 
 
                 // 
         }
-        // Dimensionless
+        // eV Unit
         return res;
 }
 
 ////	Sine Part
 
 //	Integral sz
-double LonePairMatrix_H::reci_sz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_sz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1235,8 +1132,7 @@ double LonePairMatrix_H::reci_sz_sin( const std::vector<double>& integral_knot, 
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_sz_sin(r,g);
@@ -1247,7 +1143,7 @@ double LonePairMatrix_H::reci_sz_sin( const std::vector<double>& integral_knot, 
 
                 // 
         }
-        // Dimensionledd
+        // eV Unit
         return res;
 }
 
@@ -1260,13 +1156,11 @@ double LonePairMatrix_H::reci_sz_sin( const std::vector<double>& integral_knot, 
 ////	Cosine Part
 
 //	Integral xz 'd/dgx'
-double LonePairMatrix_H::reci_xz_grad_gx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_xz_grad_gx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1275,8 +1169,7 @@ double LonePairMatrix_H::reci_xz_grad_gx_cos( const std::vector<double>& integra
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_derivative_x_xz_cos(r,g);
@@ -1287,18 +1180,16 @@ double LonePairMatrix_H::reci_xz_grad_gx_cos( const std::vector<double>& integra
 
                 // 
         }
-        // Bohr -> Angstrom
-        return res*TO_BOHR_RADII;
+        // eV Unit
+        return res;
 }
 
 //	Integral ss 'd/dgz'
-double LonePairMatrix_H::reci_ss_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_ss_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1307,8 +1198,7 @@ double LonePairMatrix_H::reci_ss_grad_gz_cos( const std::vector<double>& integra
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_reci_derivative_z_ss_cos(r,g);
@@ -1319,18 +1209,16 @@ double LonePairMatrix_H::reci_ss_grad_gz_cos( const std::vector<double>& integra
 
                 // 
         }
-        // Bohr -> Angstrom
-        return res*TO_BOHR_RADII;
+        // eV Unit
+        return res;
 }
 
 //	Integral xx 'd/dgz'
-double LonePairMatrix_H::reci_xx_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_xx_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1339,8 +1227,7 @@ double LonePairMatrix_H::reci_xx_grad_gz_cos( const std::vector<double>& integra
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_derivative_z_xx_cos(r,g);
@@ -1351,18 +1238,16 @@ double LonePairMatrix_H::reci_xx_grad_gz_cos( const std::vector<double>& integra
 
                 // 
         }
-        // Bohr -> Angstrom
-        return res*TO_BOHR_RADII;
+        // eV Unit
+        return res;
 }
 
 //	Integral zz 'd/dgz'
-double LonePairMatrix_H::reci_zz_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_zz_grad_gz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1371,8 +1256,7 @@ double LonePairMatrix_H::reci_zz_grad_gz_cos( const std::vector<double>& integra
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_derivative_z_zz_cos(r,g);
@@ -1383,20 +1267,18 @@ double LonePairMatrix_H::reci_zz_grad_gz_cos( const std::vector<double>& integra
 
                 // 
         }
-        // Bohr -> Angstrom
-        return res*TO_BOHR_RADII;
+        // eV Unit
+        return res;
 }
 
 ////	Sine Part
 
 //	Integral sx 'd/dgx'
-double LonePairMatrix_H::reci_sx_grad_gx_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_sx_grad_gx_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1405,8 +1287,7 @@ double LonePairMatrix_H::reci_sx_grad_gx_sin( const std::vector<double>& integra
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_derivative_x_sx_sin(r,g);
@@ -1417,18 +1298,16 @@ double LonePairMatrix_H::reci_sx_grad_gx_sin( const std::vector<double>& integra
 
                 // 
         }
-        // Bohr -> Angstrom
-        return res*TO_BOHR_RADII;
+        // eV Unit
+        return res;
 }
 
 //	Integral sz 'd/dgz'
-double LonePairMatrix_H::reci_sz_grad_gz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
+double LonePairMatrix_H::reci_sz_grad_gz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double g )
 {
         double res = 0.;
         double fa, fb, dr, mesh;
         double r,r_inc;
-	// Unit 'g' Angs^-1 ... to Bohr^-1
-	g = g*TO_BOHR_RADII;
         // Distance to Bohr
 
         for(int i=0;i<integral_knot.size()-1;i++)
@@ -1437,8 +1316,7 @@ double LonePairMatrix_H::reci_sz_grad_gz_sin( const std::vector<double>& integra
                 mesh = grid(dr);
                 r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
-                for(int k=0;k<(int)mesh;k++)
+                for(int k=0;k<mesh;k++)
                 {
                         r  = integral_knot[i] + k * r_inc;
                         fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_derivative_z_sz_sin(r,g);
@@ -1449,8 +1327,8 @@ double LonePairMatrix_H::reci_sz_grad_gz_sin( const std::vector<double>& integra
 
                 // 
         }
-        // Bohr -> Angstrom
-        return res*TO_BOHR_RADII;
+        // eV Unit
+        return res;
 }
 
 

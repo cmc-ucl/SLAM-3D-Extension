@@ -8,7 +8,8 @@
 
 int main()
 {
-using std::cout, std::endl;
+using std::cout;
+using std::endl;
 
 
 	cout << "# Test 1 .............................................." << endl;
@@ -19,6 +20,12 @@ using std::cout, std::endl;
 	     0.76,4.6,5,
 	     3.25,5,-6.1;
 
+	cout <<"Mat 'm'"<<endl;
+	cout << m << endl;
+	m = m*2.5;
+	cout <<"Mat 'm'"<<endl;
+	cout << m << endl;
+
 	cout << "1>Target Matrix: \n";
 	cout << m << endl;
 	es.compute(m,true);	// true flag : compute_eigenvectors=true
@@ -26,6 +33,9 @@ using std::cout, std::endl;
 	cout << es.eigenvalues() << endl;
 	cout << "EigenVectors : \n";
 	cout << es.eigenvectors() << endl;
+
+	cout << "Target Matrix After Diagonalisation" << endl;
+	cout << m << endl;
 
 	cout << "# Test 2 .............................................." << endl;
 	m << 1.1,-0.6,3.25,

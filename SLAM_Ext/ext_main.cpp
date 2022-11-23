@@ -1,10 +1,14 @@
 #include <iostream>
+//#include <mpi.h>
+
 #include "Cell.hpp"
 
 #define TARGET_INPUT "geo.txt"
 
 int main()
 {
+	
+
 	Cell c(TARGET_INPUT);
 	c.ShowBasicCellInfo();
 
@@ -20,7 +24,6 @@ int main()
 	// This has to be called after StrainDerivatives are ready
 	c.CalcLatticeDerivative();
 	c.ShowEnergyDerivative();
-
 
 	c.Finalise();
 	return 0;
