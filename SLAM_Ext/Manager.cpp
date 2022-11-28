@@ -337,7 +337,12 @@ Eigen::Vector3d R;
 //R << 0, 0, 8;			// Err ...	// Integrals ----> Discontinuous part
 //R << 0, 0, 11.87;		// Err ...	// Integrals ----> Discontinuous part
 //R<< 0, 0, 5.844;		// Err occurs after distance goes over the radial function
-R << 0, 0, 11.87;		// Err ...	// Integrals ----> Discontinuous part
+
+// Boundary Test
+//R << 0, 0, 11.87;		// Err ...	// Integrals ----> Discontinuous part
+
+
+R << -3.2,0.52,4.3;
 
 // -8.4 X
 

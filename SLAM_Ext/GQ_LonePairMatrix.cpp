@@ -641,7 +641,7 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 		}
 		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
 		{	
-			b = d;
+			b = d - integral_knot[i];
 			a = integral_knot[i];
 	
 			#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
@@ -658,7 +658,7 @@ double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_
 			}
 			
 
-			b = integral_knot[i+1];
+			b = integral_knot[i+1] - d;
 			a = d;
 	
 			#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
@@ -764,7 +764,7 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 		}
 		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
 		{	
-			b = d;
+			b = d - integral_knot[i];
 			a = integral_knot[i];
 	
 			#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
@@ -781,7 +781,7 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 			}
 			
 
-			b = integral_knot[i+1];
+			b = integral_knot[i+1] - d;
 			a = d;
 	
 			#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
@@ -953,7 +953,7 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 		}
 		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
 		{	
-			b = d;
+			b = d - integral_knot[i];
 			a = integral_knot[i];
 	
 			#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
@@ -970,7 +970,7 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 			}
 			
 
-			b = integral_knot[i+1];
+			b = integral_knot[i+1] - d;
 			a = d;
 	
 			#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
