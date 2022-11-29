@@ -1,6 +1,6 @@
 #include "Manager.hpp"
 
-//#define DERIVATIVE_CHECK
+#define DERIVATIVE_CHECK
 //#define SHOW_LP_MATRIX
 //#define LPLP_CHECK
 //#define SCF_LOG_DEBUG
