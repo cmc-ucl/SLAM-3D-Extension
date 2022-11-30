@@ -1,0 +1,22 @@
+#lattice_vector
+#.3251    0.0000    0.0000
+#.1541    5.7232    0.0000
+#.8851   -1.1551    2.3223
+
+
+#LP 1 - Triclinic 
+cell
+4.2	4.2	4.2	90	90	90
+
+atom	0.	0.	0.	O	core
+atom	0.5	0.52	0.	O	core
+atom	0.	0.49	0.5	O	core
+atom	0.5	0.	0.5	O	core
+atom	0.5	0.	0.	Pb	lone
+atom	0.	0.5	0.	Pb	lone
+atom	0.	0.	0.5	Pb	lone
+atom	0.5	0.5	0.5	Pb	lone
+
+#species Pb	lone	+3.64	-1.64	14.09
+species Pb	lone	+4.	-2.	999
+species O	core	-2.

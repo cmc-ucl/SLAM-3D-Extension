@@ -1,9 +1,16 @@
 #include "Manager.hpp"
 
-#define DERIVATIVE_CHECK
+
+// Debugging Defines
+//#define DERIVATIVE_CHECK
 //#define SHOW_LP_MATRIX
 //#define LPLP_CHECK
 //#define SCF_LOG_DEBUG
+
+
+// Essential Defines ...
+#define IS_NAN
+#define BOOST_MEMO	// INTEGRAL BOOST - SCF - Memoization scheme
 
 void ShowMatrix( const Eigen::Matrix4d& m )
 {
@@ -1602,16 +1609,22 @@ void Manager::InitialiseSCF( Cell& C )
 	this->man_scf_lp_total_energy.clear();
 }
 
-void Manager::InitialiseLonePairCalculation_Energy( Cell& C )
+void Manager::InitialiseLonePairCalculation_Energy( Cell& C , const bool is_first_scf )
 {
 	for(int j=0;j<C.NumberOfAtoms;j++)
 	{	for(int k=0;k<C.NumberOfAtoms;k++)
 		{
-			LPC_H_Real[j][k][0].setZero();	// Interaction with cores + LP cores
-			LPC_H_Real[j][k][1].setZero();	// Interaction with shels
+			#ifdef BOOST_MEMO
+			if( is_first_scf == true )	// only needs to be calculated in the first SCF cycle
+			#endif
+			{
+				LPC_H_Real[j][k][0].setZero();	// Interaction with cores + LP cores
+				LPC_H_Real[j][k][1].setZero();	// Interaction with shels
 
-			LPC_H_Reci[j][k][0].setZero();
-			LPC_H_Reci[j][k][1].setZero();
+				LPC_H_Reci[j][k][0].setZero();
+				LPC_H_Reci[j][k][1].setZero();
+			}
+			// else ... keep the pre-calculated value
 
 			LPLP_H_Real[j][k].setZero();	// Interaction of LP<--->LP Real
 			LPLP_H_Reci[j][k].setZero();	// Interaction of LP<--->LP Reciprocal
@@ -1662,10 +1675,12 @@ LPC_Reci.setZero(); LPLP_Reci.setZero();
 			{
 				lp->lp_h_matrix_tmp += LPC_H_Real[i][j][0];	// Contribution by Core
 				lp->lp_h_matrix_tmp += LPC_H_Real[i][j][1];	// Contribution by Shell
+				// ---------------------------------------- calculated only when they are in the first scf cycle
 				lp->lp_h_matrix_tmp += LPLP_H_Real[i][j];	// Contribution by LP-Density
 
 				lp->lp_h_matrix_tmp += LPC_H_Reci[i][j][0];
 				lp->lp_h_matrix_tmp += LPC_H_Reci[i][j][1];
+				// ---------------------------------------- calculated only when they are in the first scf cycle
 				lp->lp_h_matrix_tmp += LPLP_H_Reci[i][j];
 #ifdef SHOW_LP_MATRIX
 LPC_Real += LPC_H_Real[i][j][0];
@@ -1842,7 +1857,7 @@ for(int i=0;i<4;i++)
 	}
 }
 
-void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector )
+void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )
 {
 	const std::string type_i = C.AtomList[i]->type;
 	const std::string type_j = C.AtomList[j]->type;
@@ -1869,14 +1884,19 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 	if( type_i == "lone" && type_j == "core" )	// LonePairD (central-sublattice, CSL) ----> Core(periodic image, PI)
 	{
-		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
-		// W.R.T Core
-		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
-		// Evaluation
-		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );	// output saved 'this->man_matrix4d_h_real_ws[1]'
+		#ifdef BOOST_MEMO	// INTEGRAL BOOST - SCF - Memoization scheme
+		if( is_first_scf == true )
+		#endif
+		{
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+			// W.R.T Core
+			Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Not using 'Ri - Rj - T' to get the right transformation // 'i' LPcore - 'j' core
+			// Evaluation
+			Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );	// output saved 'this->man_matrix4d_h_real_ws[1]'
 
-		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;			// Inverse Transformation .. mul 1/2 ... factor-out double counting
-		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];
+			factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;			// Inverse Transformation .. mul 1/2 ... factor-out double counting
+			this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];
+		}
 	}
 
 	if( type_i == "core" && type_j == "lone" )	// Core (CSL) ----> LonePairD (PI)
@@ -1905,23 +1925,28 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 
 	if( type_i == "lone" && type_j == "shel" )	// LonePairD (CSL) ----> Shell (PI)
 	{
-		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+		#ifdef BOOST_MEMO
+		if( is_first_scf == true )
+		#endif
+		{
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
-		// <1> W.R.T CorePart (PI)
-		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(shell CorePart);
-		// Evalulation
-		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
+			// <1> W.R.T CorePart (PI)
+			Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(shell CorePart);
+			// Evalulation
+			Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 
-		factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;
-		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];		// [0] for Core
-		
-		// <2> W.R.T ShelPart (PI)
-		Rij = ( static_cast<Shell*>(C.AtomList[j])->shel_cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(ShellPart);
-		// Evalulation
-		Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
-		
-		factor = 0.5 * lp->lp_charge * static_cast<Shell*>(C.AtomList[j])->shel_charge;
-		this->LPC_H_Real[i][j][1] += factor * this->man_matrix4d_h_real_ws[1];		// [1] for Shell
+			factor = 0.5 * lp->lp_charge * C.AtomList[j]->charge;
+			this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];		// [0] for Core
+			
+			// <2> W.R.T ShelPart (PI)
+			Rij = ( static_cast<Shell*>(C.AtomList[j])->shel_cart + TransVector ) - C.AtomList[i]->cart;	// (Rj+T) - Ri ... Ri(LPcore) ---> Rj+T(ShellPart);
+			// Evalulation
+			Manager::support_h_matrix_real( lp, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
+			
+			factor = 0.5 * lp->lp_charge * static_cast<Shell*>(C.AtomList[j])->shel_charge;
+			this->LPC_H_Real[i][j][1] += factor * this->man_matrix4d_h_real_ws[1];		// [1] for Shell
+		}
 	}
 
 	if( type_i == "shel" && type_j == "lone" )	// Shell (CSL) ----> LonePairD (PI)
@@ -1967,13 +1992,18 @@ void Manager::set_h_matrix_real( Cell& C, const int i, const int j, const Eigen:
 		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
 		LonePair* lpj = static_cast<LonePair*>(C.AtomList[j]);
 	
-		// <1> LP(i) Density (CSL) vs LP(j) Core (PI)	.... analogy Shell - Core
-		Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i)('in the central sublattice')  -> LP(j)('in the periodic image') core
-		// Evaluation
-		Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
+		#ifdef BOOST_MEMO
+		if( is_first_scf == true )
+		#endif
+		{
+			// <1> LP(i) Density (CSL) vs LP(j) Core (PI)	.... analogy Shell - Core
+			Rij = ( C.AtomList[j]->cart + TransVector ) - C.AtomList[i]->cart;	// LP(i)('in the central sublattice')  -> LP(j)('in the periodic image') core
+			// Evaluation
+			Manager::support_h_matrix_real( lpi, C.sigma, Rij, this->man_matrix4d_h_real_ws[0], this->man_matrix4d_h_real_ws[1] );
 
-		factor = 0.5 * lpi->lp_charge * C.AtomList[j]->charge;			// LP(i) charge * LP(j) core charge
-		this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];		// LPcore treated as a classical entity ... saved in 'LPC_H_...'
+			factor = 0.5 * lpi->lp_charge * C.AtomList[j]->charge;			// LP(i) charge * LP(j) core charge
+			this->LPC_H_Real[i][j][0] += factor * this->man_matrix4d_h_real_ws[1];		// LPcore treated as a classical entity ... saved in 'LPC_H_...'
+		}
 
 		// <2> LP(i) Core (CSL) vs LP(j) Density (PI)	.... analogy Core - Shell
 		Rij = C.AtomList[i]->cart - ( C.AtomList[j]->cart + TransVector );	// LP(j)('in the periodic image') -> LP(j)('in the central sublattice')
@@ -2133,7 +2163,7 @@ void Manager::CoulombLonePairReal( Cell& C, const int i, const int j, const Eige
 		}
 	}
 	// Accumulating LonePair <---> LonePair / Core / Shell Interactions; i.e., setting up the LonePair Hamiltonian Matrices
-	Manager::set_h_matrix_real( C, i, j, TransVector );
+	Manager::set_h_matrix_real( C, i, j, TransVector, is_first_scf );
 }
 
 void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eigen::Vector3d& TransVector, const bool is_first_scf )	// self energy in the reciprocal space
@@ -2152,7 +2182,7 @@ void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eige
 			C.mono_reci_self_energy += -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
 		}
 
-		// (1) - LP Electron Self Energy
+		// (1) - LP Electron Self Energy (does not require to solve any integrals)
 		Qi = static_cast<LonePair*>(C.AtomList[i])->lp_charge;
 		Qj = static_cast<LonePair*>(C.AtomList[j])->lp_charge;
 		intact = -0.5*(Qi*Qj)*2./C.sigma/sqrt(M_PI) * C.TO_EV;
@@ -2160,17 +2190,23 @@ void Manager::CoulombLonePairSelf( Cell& C, const int i, const int j, const Eige
 		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_matrix4d_h_reci_self_ws(1,1) = this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = intact;
 		this->LPLP_H_Reci[i][j] += this->man_matrix4d_h_reci_self_ws;
 
-		// (2) - LP Electron::Core, Core::LP Electron Self Energy
-		LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
-		Qi = lpi->lp_charge;
-		Qj = C.AtomList[j]->charge;
-		factor = -0.5 * (Qi*Qj) * 2.;	// Fatcor '* 2.' Important 
-		this->man_matrix4d_h_reci_self_ws.setZero();
-		this->man_matrix4d_h_reci_self_ws(0,0) = this->man_lp_matrix_h.reci_self_integral_ss(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);	// ss		  Component
-		this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);	// xx == yy == zz Component
-		this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = this->man_matrix4d_h_reci_self_ws(1,1);
-		//this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
-		this->LPC_H_Reci[i][j][0] += factor * this->man_matrix4d_h_reci_self_ws;
+		#ifdef BOOST_MEMO
+		if( is_first_scf == true )
+		#endif
+		{
+			// (2) - LP Electron::Core, Core::LP Electron Self Energy
+			LonePair* lpi = static_cast<LonePair*>(C.AtomList[i]);
+			Qi = lpi->lp_charge;
+			Qj = C.AtomList[j]->charge;
+			//factor = -0.5 * (Qi*Qj) * 2.;
+			factor = -(Qi*Qj);
+			this->man_matrix4d_h_reci_self_ws.setZero();
+			this->man_matrix4d_h_reci_self_ws(0,0) = this->man_lp_matrix_h.reci_self_integral_ss(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);	// ss		  Component
+			this->man_matrix4d_h_reci_self_ws(1,1) = this->man_lp_matrix_h.reci_self_integral_xx(lpi->lp_r,lpi->lp_r_s_function,lpi->lp_r_p_function,C.sigma);	// xx == yy == zz Component
+			this->man_matrix4d_h_reci_self_ws(2,2) = this->man_matrix4d_h_reci_self_ws(3,3) = this->man_matrix4d_h_reci_self_ws(1,1);
+			//this->LPLP_H_Reci[i][j] += factor * this->man_matrix4d_h_reci_self_ws;
+			this->LPC_H_Reci[i][j][0] += factor * this->man_matrix4d_h_reci_self_ws;
+		}
 	}
 
 	return;
@@ -2197,13 +2233,12 @@ void Manager::support_h_matrix_reci( const LonePair* lp, const Eigen::Vector3d& 
 	h_mat_out[1] = this->man_lp_matrix_h.transform_matrix.transpose() * h_mat_ws[1] * this->man_lp_matrix_h.transform_matrix;	// Sin
 }
 
-void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen::Vector3d& G )
+void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen::Vector3d& G, const bool is_first_scf )
 {
 	const std::string type_i = C.AtomList[i]->type;
 	const std::string type_j = C.AtomList[j]->type;
 	double lp_cf[4];		// Eigenvector storage
 	double partial_e;		// Partial energy when 'i' is non-LP species and 'j' is LP density
-
 
 	double factor, intact[4];	// factor : halved leading term / intact : Cos(G.Rij), Sin(G.Rij), rests->for LPLP
 	double Qi,Qj;
@@ -2213,20 +2248,25 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
         // Rij            = Ai.r - Aj.r;
 
 	if( type_i == "lone" && type_j == "core" )	// LonePairD (central-sublattice, CSL) ----> Core(periodic image, PI)
-	{	// 'i' LP in CSL
-		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+	{
+		#ifdef BOOST_MEMO	
+		if( is_first_scf == true )
+		#endif
+		{	// 'i' LP in CSL
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
 
-		Qi  = lp->lp_charge;
-		Qj  = C.AtomList[j]->charge;
-		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
+			Qi  = lp->lp_charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 
-		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
-		intact[0] = cos(Rij.adjoint()*G);
-		intact[1] = sin(Rij.adjoint()*G);
-		
-		// Evaluation
-		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine	// return unit ... dimensionless
-		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+			factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
+			intact[0] = cos(Rij.adjoint()*G);
+			intact[1] = sin(Rij.adjoint()*G);
+			
+			// Evaluation
+			Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine	// return unit ... dimensionless
+			this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+		}
 	}
 
 	if( type_i == "core" && type_j == "lone" )	// Core (CSL) ----> LonePairD (PI)
@@ -2258,32 +2298,37 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 
 	if( type_i == "lone" && type_j == "shel" )	// LonePairD (CSL) ----> Shell (PI)
 	{	
-		LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
-		// <1> W.R.T CorePart (PI)
-		Qi  = lp->lp_charge;
-		Qj  = C.AtomList[j]->charge;
-		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
+		#ifdef BOOST_MEMO
+		if( is_first_scf == true )
+		#endif
+		{
+			LonePair* lp = static_cast<LonePair*>(C.AtomList[i]);
+			// <1> W.R.T CorePart (PI)
+			Qi  = lp->lp_charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 
-		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
-		intact[0] = cos(Rij.adjoint()*G);
-		intact[1] = sin(Rij.adjoint()*G);
+			factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
+			intact[0] = cos(Rij.adjoint()*G);
+			intact[1] = sin(Rij.adjoint()*G);
 
-		// Evaluation
-		Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+			// Evaluation
+			Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
+			this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
-		// <2> W.R.T ShelPart (PI)
-		Qi  = lp->lp_charge;
-		Qj  = static_cast<Shell*>(C.AtomList[j])->shel_charge;
-		Rij = static_cast<Shell*>(C.AtomList[j])->shel_cart - C.AtomList[i]->cart;
+			// <2> W.R.T ShelPart (PI)
+			Qi  = lp->lp_charge;
+			Qj  = static_cast<Shell*>(C.AtomList[j])->shel_charge;
+			Rij = static_cast<Shell*>(C.AtomList[j])->shel_cart - C.AtomList[i]->cart;
 
-		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
-		intact[0] = cos(Rij.adjoint()*G);
-		intact[1] = sin(Rij.adjoint()*G);
+			factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
+			intact[0] = cos(Rij.adjoint()*G);
+			intact[1] = sin(Rij.adjoint()*G);
 
-		// Evaluation
-		//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-		this->LPC_H_Reci[i][j][1] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+			// Evaluation
+			//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
+			this->LPC_H_Reci[i][j][1] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+		}
 	}
 
 	if( type_i == "shel" && type_j == "lone" )	// Shell (CSL) ----> LonePairD (PI)
@@ -2341,19 +2386,24 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		lp_cf[2] = lpj->lp_eigensolver.eigenvectors()(2,lpj->lp_gs_index).real();	// py
 		lp_cf[3] = lpj->lp_eigensolver.eigenvectors()(3,lpj->lp_gs_index).real();	// pz
 
-		// LP   Core	
-		Qi  = lpi->lp_charge;
-		Qj  = C.AtomList[j]->charge;
-		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
+		#ifdef BOOST_MEMO
+		if( is_first_scf == true )
+		#endif
+		{
+			// LP   Core	
+			Qi  = lpi->lp_charge;
+			Qj  = C.AtomList[j]->charge;
+			Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
 
-		factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
-		intact[0] = cos(Rij.adjoint()*G);
-		intact[1] = sin(Rij.adjoint()*G);
-		// Evaluation
-		Manager::support_h_matrix_reci( lpj, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
-		this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+			factor    = C.TO_EV * (2.*M_PI/C.volume)*(Qi*Qj)*exp(-0.25*C.sigma*C.sigma*g_sqr)/g_sqr;	// halved leading term
+			intact[0] = cos(Rij.adjoint()*G);
+			intact[1] = sin(Rij.adjoint()*G);
+			// Evaluation
+			Manager::support_h_matrix_reci( lpj, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
+			this->LPC_H_Reci[i][j][0] += factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
+		}
 
-		// Core LP
+		// (2) Core LP
 		Qi  = C.AtomList[i]->charge;
 		Qj  = lpj->lp_charge;
 		Rij = C.AtomList[i]->cart - C.AtomList[j]->cart;
@@ -2363,7 +2413,10 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		intact[1] = sin(Rij.adjoint()*G);
 
 		// Evaluation
-		//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
+		#ifdef BOOST_MEMO
+		Manager::support_h_matrix_reci( lpj, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine - it doesn't really matter using const LonePair* (1st arg) place 'lpi' or 'lpj'
+		#endif
+
 		this->man_matrix4d_h_reci_ws[0] = factor*(intact[0]*this->man_matrix4d_h_reci_out[0] - intact[1]*this->man_matrix4d_h_reci_out[1]);
 
 		partial_e = 0.;
@@ -2371,7 +2424,7 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		// Save LonePair Density Energy ...
 		C.lp_reci_energy += partial_e;
 
-		// LP   LP
+		// (3) LP   LP
 		Qi  = lpi->lp_charge;
 		Qj  = lpj->lp_charge;
 		Rij = C.AtomList[j]->cart - C.AtomList[i]->cart;
@@ -2381,7 +2434,7 @@ void Manager::set_h_matrix_reci( Cell& C, const int i, const int j, const Eigen:
 		intact[1] = sin(Rij.adjoint()*G);
 
 		// Evaluation
-		//Manager::support_h_matrix_reci( lp, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
+		//Manager::support_h_matrix_reci( lpj, G, this->man_matrix4d_h_reci_ws, this->man_matrix4d_h_reci_out );	// man_matrix4d_h_reci_ws/out[0-1] : 0 cosine 1 sine
 		intact[2] = intact[3] = 0.;
 		for(int ii=0;ii<4;ii++)
 		{	for(int jj=0;jj<4;jj++)
@@ -2486,7 +2539,7 @@ void Manager::CoulombLonePairReci( Cell& C, const int i, const int j, const Eige
 		}
 	}
 
-	Manager::set_h_matrix_reci(C,i,j,TransVector);
+	Manager::set_h_matrix_reci( C, i, j, TransVector, is_first_scf );
 }
 
 ////	////	////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////    ////
