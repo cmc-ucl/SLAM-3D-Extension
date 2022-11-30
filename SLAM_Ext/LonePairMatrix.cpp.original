@@ -4,13 +4,8 @@
 #include <cmath>
 
 #include <omp.h>
-#define NUM_OMP_THREAD	36
-
-// real 4 reci 4 // gauss real 16 reci 8 ----- turing
-#define NUM_OMP_THREAD_REAL 36
-#define NUM_OMP_THREAD_RECI 36
-#define GAUSS_QUAD_REAL 32
-#define GAUSS_QUAD_RECI	64
+#define NUM_OMP_THREAD	4
+#define GAUSS_QUAD	16
 
 #include "LonePairMatrix.hpp"
 
@@ -143,14 +138,14 @@ double LonePairMatrix_H::reci_self_integral_ss( const std::vector<double>& integ
 	double r,r_inc;
 	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;	
-	
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		dr   = integral_knot[i+1] - integral_knot[i];
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
 		for(int k=0;k<(int)mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
@@ -162,33 +157,6 @@ double LonePairMatrix_H::reci_self_integral_ss( const std::vector<double>& integ
 	}
 	// eV Unit
 	return res*HA_TO_EV_UNIT;
-/*
-	double res = 0.;
-	double a,b;
-	double ab,we;
-	sig = sig/TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
-	for(int i=0;i<integral_knot.size()-1;i++)
-	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*erf(ab/sig)/ab;
-		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*erf(ab/sig)/ab;
-		}
-	}
-	// eV Unit
-	return res*HA_TO_EV_UNIT;
-*/
 }
 
 // xx = yy = zz
@@ -206,7 +174,7 @@ double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integ
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
 		for(int k=0;k<(int)mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
@@ -218,37 +186,9 @@ double LonePairMatrix_H::reci_self_integral_xx( const std::vector<double>& integ
 	}
 	// eV Unit
 	return res*HA_TO_EV_UNIT;
-/*
-	double res = 0.;
-	double a,b;
-	double ab,we;
-	sig = sig/TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
-	for(int i=0;i<integral_knot.size()-1;i++)
-	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*erf(ab/sig)/ab;
-		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*erf(ab/sig)/ab;
-		}
-	}
-	// eV Unit
-	return res*HA_TO_EV_UNIT;
-*/
 }
 
-
-///	////	////	////	////	////
+////	////	////	////	////	////
 
 ////	Reci Space Self Integral d/dRi ... (derivative w.r.t. 'i' core of a LP)
 
@@ -270,7 +210,7 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 		mesh = grid(dr);
 		r_inc= dr/static_cast<double>(mesh);
 
-		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
 		for(int k=0;k<(int)mesh;k++)
 		{
 			r  = integral_knot[i] + k * r_inc;
@@ -295,27 +235,26 @@ double LonePairMatrix_H::reci_self_integral_sx_grad_x( const std::vector<double>
 double LonePairMatrix_H::real_ss_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
 		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_ss(sig,ab,d);
-		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_ss(sig,ab,d);
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_ss(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_ss(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
@@ -325,27 +264,26 @@ double LonePairMatrix_H::real_ss_pc( const std::vector<double>& integral_knot, c
 double LonePairMatrix_H::real_sz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
 	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_sz(sig,ab,d);
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_sz(sig,ab,d);
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_sz(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_sz(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
@@ -355,27 +293,26 @@ double LonePairMatrix_H::real_sz_pc( const std::vector<double>& integral_knot, c
 double LonePairMatrix_H::real_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
 	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_xx(sig,ab,d);
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_xx(sig,ab,d);
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_xx(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_xx(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
@@ -385,27 +322,26 @@ double LonePairMatrix_H::real_xx_pc( const std::vector<double>& integral_knot, c
 double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_zz(sig,ab,d);
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_zz(sig,ab,d);
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_zz(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_zz(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
@@ -415,27 +351,26 @@ double LonePairMatrix_H::real_zz_pc( const std::vector<double>& integral_knot, c
 double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
 	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_x_sx(sig,ab,d);
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_x_sx(sig,ab,d);
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_sx(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_sx(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
@@ -445,155 +380,169 @@ double LonePairMatrix_H::real_sx_grad_x_pc( const std::vector<double>& integral_
 double LonePairMatrix_H::real_xz_grad_x_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4],  double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
 	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_x_xz(sig,ab,d);
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_x_xz(sig,ab,d);
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_xz(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_x_xz(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
 	return res*FHA_TO_FEV_UNIT;
 }
 
+//double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], const double sig, double d )
 double LonePairMatrix_H::real_ss_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a1,b1,a2,b2,a3,b3;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
+
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
-	#pragma omp parallel for private(we,ab,a1,b1,a2,b2,a3,b3) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
+//std::vector<double> abc;
+//abc.push_back(19);
+//abc.push_back(19);
+//printf("%d\n",abc.size());
+//printf("distance   (bohr): %20.12lf\n",d);
+//printf("radial end (bohr): %20.12lf\n",integral_knot[integral_knot.size()-1]);
+//printf("distance   (angs): %20.12lf\n",d*TO_BOHR_RADII);
+//printf("radial end (angs): %20.12lf\n",integral_knot[integral_knot.size()-1]*TO_BOHR_RADII);
+//printf("knot_d   : %d\n",knot_d);
+//printf("knot_end : %d\n",integral_knot.size()-1);
+
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		//if( i != knot_d )
 		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
 		{
-			b1 = integral_knot[i+1];
-			a1 = integral_knot[i];
+			dr   = integral_knot[i+1] - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 	
-			for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
 			{
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b1-a1)/2. * ab + (b1+a1)/2.;
-				res += (b1-a1)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_derivative_z_ss(sig,ab,d);
-			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b1-a1)/2. * ab + (b1+a1)/2.;
-				res += (b1-a1)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_derivative_z_ss(sig,ab,d);
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 			}
 		}
 		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
 		{	
-			b2 = d;
-			a2 = integral_knot[i];
+			dr   = d - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 
-			b3 = integral_knot[i+1];
-			a3 = d;
-	
-			for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
 			{
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b2-a2)/2. * ab + (b2+a2)/2.;
-				res += (b2-a2)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_derivative_z_ss_left(sig,ab,d);
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss_left(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss_left(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
+			}
 			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b2-a2)/2. * ab + (b2+a2)/2.;
-				res += (b2-a2)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_derivative_z_ss_left(sig,ab,d);
+			dr   = integral_knot[i+1] - d;
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b3-a3)/2. * ab + (b3+a3)/2.;
-				res += (b3-a3)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_derivative_z_ss_right(sig,ab,d);
-			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b3-a3)/2. * ab + (b3+a3)/2.;
-				res += (b3-a3)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_real_derivative_z_ss_right(sig,ab,d);
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
+			{
+				r  = d + k * r_inc;
+				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss_right(sig,r,d);
+				r  = d + (k+1) * r_inc;
+				fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_real_derivative_z_ss_right(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 			}
 		}
 	}
 	// eV Unit
 	if( std::isnan(res) ){	printf("ss grad z - isnan\n"); exit(1); }
+
 	return res*FHA_TO_FEV_UNIT;
 }
 
 double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a1,b1,a2,b2,a3,b3;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
+
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
-	#pragma omp parallel for private(we,ab,a1,b1,a2,b2,a3,b3) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		//if( i != knot_d )
 		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
 		{
-			b1 = integral_knot[i+1];
-			a1 = integral_knot[i];
-	
-			for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+			dr   = integral_knot[i+1] - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
+		
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
 			{
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b1-a1)/2. * ab + (b1+a1)/2.;
-				res += (b1-a1)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_sz(sig,ab,d);
-			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b1-a1)/2. * ab + (b1+a1)/2.;
-				res += (b1-a1)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_sz(sig,ab,d);
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 			}
 		}
-		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
+		else
 		{	
-			b2 = d;
-			a2 = integral_knot[i];
-	
-			b3 = integral_knot[i+1];
-			a3 = d;
+			dr   = d - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 
-			for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
 			{
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b2-a2)/2. * ab + (b2+a2)/2.;
-				res += (b2-a2)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_sz_left(sig,ab,d);
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz_left(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz_left(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
+			}
 			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b2-a2)/2. * ab + (b2+a2)/2.;
-				res += (b2-a2)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_sz_left(sig,ab,d);
+			dr   = integral_knot[i+1] - d;
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b3-a3)/2. * ab + (b3+a3)/2.;
-				res += (b3-a3)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_sz_right(sig,ab,d);
-			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b3-a3)/2. * ab + (b3+a3)/2.;
-				res += (b3-a3)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_sz_right(sig,ab,d);
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
+			{
+				r  = d + k * r_inc;
+				fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz_right(sig,r,d);
+				r  = d + (k+1) * r_inc;
+				fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_sz_right(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 			}
 		}
 	}
@@ -605,27 +554,26 @@ double LonePairMatrix_H::real_sz_grad_z_pc( const std::vector<double>& integral_
 double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a,b;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
 	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
-
-		for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_xx(sig,ab,d);
+		dr   = integral_knot[i+1] - integral_knot[i];
+		mesh = grid(dr);
+		r_inc= dr/static_cast<double>(mesh);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_xx(sig,ab,d);
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)mesh;k++)
+		{
+			r  = integral_knot[i] + k * r_inc;
+			fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_xx(sig,r,d);
+			r  = integral_knot[i] + (k+1) * r_inc;
+			fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_xx(sig,r,d);
+			res += r_inc*(fa+fb)/2.;
 		}
 	}
 	// eV Unit
@@ -636,60 +584,61 @@ double LonePairMatrix_H::real_xx_grad_z_pc( const std::vector<double>& integral_
 double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
 	double res = 0.;
-	double a1,b1,a2,b2,a3,b3;
-	double ab,we;
+	double fa, fb, dr, mesh;
+	double r,r_inc;
 	d = d/TO_BOHR_RADII;
+	// Distance to Bohr
 	sig = sig/TO_BOHR_RADII;
+
 	const int knot_d = LonePairMatrix::b_search( d, integral_knot );	// Get 'd' location on a knot
 
-	#pragma omp parallel for private(we,ab,a1,b1,a2,b2,a3,b3) reduction(+:res) num_threads(NUM_OMP_THREAD_REAL) schedule(static)
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		//if( i != knot_d )
 		if( i != knot_d  || integral_knot[integral_knot.size()-1] < d )	// Error Section ... 19/11/2022 Sat, There is now boundary condition correction, if distance is out of the RadialFunction Range
 		{
-			b1 = integral_knot[i+1];
-			a1 = integral_knot[i];
-	
-			for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+			dr   = integral_knot[i+1] - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
+		
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
 			{
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b1-a1)/2. * ab + (b1+a1)/2.;
-				res += (b1-a1)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_zz(sig,ab,d);
-			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b1-a1)/2. * ab + (b1+a1)/2.;
-				res += (b1-a1)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_zz(sig,ab,d);
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 			}
 		}
-		else	// if 'd' is in between the knot ...  r_k <----- d -----> r_k+1
+		else
 		{	
-			b2 = d;
-			a2 = integral_knot[i];
+			dr   = d - integral_knot[i];
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 
-			b3 = integral_knot[i+1];
-			a3 = d;
-	
-			for(int k=0;k<(int)GAUSS_QUAD_REAL/2;k++)
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
 			{
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b2-a2)/2. * ab + (b2+a2)/2.;
-				res += (b2-a2)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_zz_left(sig,ab,d);
+				r  = integral_knot[i] + k * r_inc;
+				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz_left(sig,r,d);
+				r  = integral_knot[i] + (k+1) * r_inc;
+				fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz_left(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
+			}
 			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b2-a2)/2. * ab + (b2+a2)/2.;
-				res += (b2-a2)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_zz_left(sig,ab,d);
+			dr   = integral_knot[i+1] - d;
+			mesh = grid(dr);
+			r_inc= dr/static_cast<double>(mesh);
 
-				we = this->GQ.gaussQuadW(k,GAUSS_QUAD_REAL);
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = (b3-a3)/2. * ab + (b3+a3)/2.;
-				res += (b3-a3)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_zz_right(sig,ab,d);
-			
-				ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_REAL);
-				ab = -(b3-a3)/2. * ab + (b3+a3)/2.;
-				res += (b3-a3)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_real_derivative_z_zz_right(sig,ab,d);
+			#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+			for(int k=0;k<(int)mesh;k++)
+			{
+				r  = d + k * r_inc;
+				fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz_right(sig,r,d);
+				r  = d + (k+1) * r_inc;
+				fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_real_derivative_z_zz_right(sig,r,d);
+				res += r_inc*(fa+fb)/2.;
 			}
 		}
 	}
@@ -700,9 +649,15 @@ double LonePairMatrix_H::real_zz_grad_z_pc( const std::vector<double>& integral_
 
 ////	////	////	////	////	////
 
-////	2nd derivatives w.r.t. point charges - RealSpace	--------------- NOT OMP WRAPPED BELOW (FOR REAL CALCS) ------------ NO BOUNDART CORRECTIONS ALSO
+////	2nd derivatives w.r.t. point charges - RealSpace
 
 ////	////	////	////	////	////
+
+//double et = -omp_get_wtime();
+//et += omp_get_wtime();
+//printf("calculated val : %20.12lf\n",res);
+//printf("elapsed time   : %20.12lf\n",et);
+//exit(1);
 
 double LonePairMatrix_H::real_ss_grad2_xx_pc( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double sig, double d )
 {
@@ -1170,54 +1125,86 @@ double LonePairMatrix_H::real_zz_grad2_zz_pc( const std::vector<double>& integra
 //	Integral ss
 double LonePairMatrix_H::reci_ss_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
 {
-	double res = 0.;
-	double a,b;
-	double ab,we;
+        double res = 0.;
+        double fa, fb, dr, mesh;
+        double r,r_inc;
+	// Unit 'g' Angs^-1 ... to Bohr^-1
 	g = g*TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_RECI) schedule(static)
-	for(int i=0;i<integral_knot.size()-1;i++)
-	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
+        // Distance to Bohr
 
-		for(int k=0;k<(int)GAUSS_QUAD_RECI/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_RECI);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_reci_ss_cos(ab,g);
-		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*EnergyAngularIntegral_reci_ss_cos(ab,g);
-		}
-	}
+        for(int i=0;i<integral_knot.size()-1;i++)
+        {
+                dr   = integral_knot[i+1] - integral_knot[i];
+                mesh = grid(dr);
+                r_inc= dr/static_cast<double>(mesh);
+
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+                for(int k=0;k<(int)mesh;k++)
+                {
+                        r  = integral_knot[i] + k * r_inc;
+                        fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_reci_ss_cos(r,g);
+                        r  = integral_knot[i] + (k+1) * r_inc;
+                        fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*EnergyAngularIntegral_reci_ss_cos(r,g);
+                        res += r_inc*(fa+fb)/2.;
+                }
+
+                // 
+        }
+        // Dimensionless ..
         return res;	
 }
 
 //	Integral xx <=> yy
 double LonePairMatrix_H::reci_xx_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
 {
+/*
+        double res = 0.;
+        double fa, fb, dr, mesh;
+        double r,r_inc;
+	// Unit 'g' Angs^-1 ... to Bohr^-1
+	g = g*TO_BOHR_RADII;
+        // Distance to Bohr
+
+        for(int i=0;i<integral_knot.size()-1;i++)
+        {
+                dr   = integral_knot[i+1] - integral_knot[i];
+                mesh = grid(dr);
+                r_inc= dr/static_cast<double>(mesh);
+
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+                for(int k=0;k<(int)mesh;k++)
+                {
+                        r  = integral_knot[i] + k * r_inc;
+                        fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_xx_cos(r,g);
+                        r  = integral_knot[i] + (k+1) * r_inc;
+                        fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_xx_cos(r,g);
+                        res += r_inc*(fa+fb)/2.;
+                }
+
+                // 
+        }
+        // Dimensionless
+*/
+
 	double res = 0.;
 	double a,b;
 	double ab,we;
 	g = g*TO_BOHR_RADII;
-
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_RECI) schedule(static)
+	
 	for(int i=0;i<integral_knot.size()-1;i++)
 	{
 		b = integral_knot[i+1];
 		a = integral_knot[i];
 
-		for(int k=0;k<(int)GAUSS_QUAD_RECI/2;k++)
+		#pragma omp parallel for private(we,ab) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+		for(int k=0;k<(int)GAUSS_QUAD/2;k++)
 		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_RECI);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
+			we = this->GQ.gaussQuadW(k,GAUSS_QUAD);
+			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD);
 			ab = (b-a)/2. * ab + (b+a)/2.;
 			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_reci_xx_cos(ab,g);
 		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
+			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD);
 			ab = -(b-a)/2. * ab + (b+a)/2.;
 			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_reci_xx_cos(ab,g);
 		}
@@ -1229,30 +1216,32 @@ double LonePairMatrix_H::reci_xx_cos( const std::vector<double>& integral_knot, 
 //	Integral zz
 double LonePairMatrix_H::reci_zz_cos( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
 {
-	double res = 0.;
-	double a,b;
-	double ab,we;
+        double res = 0.;
+        double fa, fb, dr, mesh;
+        double r,r_inc;
+	// Unit 'g' Angs^-1 ... to Bohr^-1
 	g = g*TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_RECI) schedule(static)
-	for(int i=0;i<integral_knot.size()-1;i++)
-	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
+        // Distance to Bohr
 
-		for(int k=0;k<(int)GAUSS_QUAD_RECI/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_RECI);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_reci_zz_cos(ab,g);
-		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_reci_zz_cos(ab,g);
-		}
-	}
+        for(int i=0;i<integral_knot.size()-1;i++)
+        {
+                dr   = integral_knot[i+1] - integral_knot[i];
+                mesh = grid(dr);
+                r_inc= dr/static_cast<double>(mesh);
 
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+                for(int k=0;k<(int)mesh;k++)
+                {
+                        r  = integral_knot[i] + k * r_inc;
+                        fa = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_zz_cos(r,g);
+                        r  = integral_knot[i] + (k+1) * r_inc;
+                        fb = radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_zz_cos(r,g);
+                        res += r_inc*(fa+fb)/2.;
+                }
+
+                // 
+        }
+        // Dimensionless
         return res;
 }
 
@@ -1261,37 +1250,38 @@ double LonePairMatrix_H::reci_zz_cos( const std::vector<double>& integral_knot, 
 //	Integral sz
 double LonePairMatrix_H::reci_sz_sin( const std::vector<double>& integral_knot, const std::vector<double> (&Rs)[4], const std::vector<double> (&Rp)[4], double g )
 {
-	double res = 0.;
-	double a,b;
-	double ab,we;
+        double res = 0.;
+        double fa, fb, dr, mesh;
+        double r,r_inc;
+	// Unit 'g' Angs^-1 ... to Bohr^-1
 	g = g*TO_BOHR_RADII;
-	
-	#pragma omp parallel for private(we,ab,a,b) reduction(+:res) num_threads(NUM_OMP_THREAD_RECI) schedule(static)
-	for(int i=0;i<integral_knot.size()-1;i++)
-	{
-		b = integral_knot[i+1];
-		a = integral_knot[i];
+        // Distance to Bohr
 
-		for(int k=0;k<(int)GAUSS_QUAD_RECI/2;k++)
-		{
-			we = this->GQ.gaussQuadW(k,GAUSS_QUAD_RECI);
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
-			ab = (b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_reci_sz_sin(ab,g);
-		
-			ab = this->GQ.gaussQuadA(k,GAUSS_QUAD_RECI);
-			ab = -(b-a)/2. * ab + (b+a)/2.;
-			res += (b-a)/2. * we * radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],ab)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],ab)*EnergyAngularIntegral_reci_sz_sin(ab,g);
-		}
-	}
+        for(int i=0;i<integral_knot.size()-1;i++)
+        {
+                dr   = integral_knot[i+1] - integral_knot[i];
+                mesh = grid(dr);
+                r_inc= dr/static_cast<double>(mesh);
 
+		#pragma omp parallel for private(r,fa,fb) reduction(+:res) num_threads(NUM_OMP_THREAD) schedule(static)
+                for(int k=0;k<(int)mesh;k++)
+                {
+                        r  = integral_knot[i] + k * r_inc;
+                        fa = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_sz_sin(r,g);
+                        r  = integral_knot[i] + (k+1) * r_inc;
+                        fb = radial(Rs[0][i],Rs[1][i],Rs[2][i],Rs[3][i],r)*radial(Rp[0][i],Rp[1][i],Rp[2][i],Rp[3][i],r)*EnergyAngularIntegral_reci_sz_sin(r,g);
+                        res += r_inc*(fa+fb)/2.;
+                }
 
+                // 
+        }
+        // Dimensionledd
         return res;
 }
 
 ////	////	////
 
-//// 	Reci Space Integral - LP derivative w.r.t. 'g' vector components	--- GQ IS NOT APPLIED BELOW .... 
+//// 	Reci Space Integral - LP derivative w.r.t. 'g' vector components
 
 ////	////	////
 

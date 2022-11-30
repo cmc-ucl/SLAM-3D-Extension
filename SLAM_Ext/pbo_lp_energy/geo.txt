@@ -17,6 +17,7 @@ atom	 0	 0	 0	O	core
 atom	 0.5	 0.5	 0	O	core
 atom	 0.5	 0	 0.	Pb	lone
 atom	 0	 0.5	 1.	Pb	lone
+
 #atom	 0.5	 0	 0.20	Pb	lone
 #atom	 0	 0.5	 0.80	Pb	lone
 
@@ -25,8 +26,8 @@ atom	 0	 0.5	 1.	Pb	lone
 #species Pb	core	+2.
 
 #species Pb	lone	+3.43	-1.43	14.5
-#species Pb	lone	+3.64	-1.64	14.09
-species Pb	lone	+3.00	-1.00	20.0
+species Pb	lone	+3.64	-1.64	14.09
+#species Pb	lone	+3.00	-1.00	20.0
 species O	core	-2.
 
 #pb o 19600 0.2430 

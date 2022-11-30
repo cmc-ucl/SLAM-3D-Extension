@@ -528,19 +528,20 @@ void Cell::CalcLonePairCoulombEnergy()
 	{
 		/*	Initialise(Zeros) for LPC_... LPLP_... temporal interaction values realted with LP entities
 			Initialise(Zeros) Cell.lp_real_energy = Cell.lp_reci_energy = Cell.lp_reci_self_energy = Cell.lp_total_energy = 0;	*/
-		manager.InitialiseLonePairCalculation_Energy(*this);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
+		manager.InitialiseLonePairCalculation_Energy(*this,is_first_scf);	// renew - lp_h_matrix_tmp with onsite terms (lp_lambda)
 
-	// BLOCK OUTPUT
-	cout << "---------------------------------------------------------------------------------------------------------" << endl;
-	cout << endl;
-	cout << "   SCF Cycle : " << std::noshowpos << n+1 << endl;
-	cout << endl;
-	cout << "---------------------------------------------------------------------------------------------------------" << endl;
-	cout << endl;
-	cout << "   Real space evaluation starts" << endl;
-	cout << endl;
+		// BLOCK OUTPUT
+		cout << "---------------------------------------------------------------------------------------------------------" << endl;
+		cout << endl;
+		cout << "   SCF Cycle : " << std::noshowpos << n+1 << endl;
+		cout << endl;
+		cout << "---------------------------------------------------------------------------------------------------------" << endl;
+		cout << endl;
+		cout << "   Real space evaluation starts" << endl;
+		cout << endl;
+		// BLOCK OUTPUT
 
-	auto real_sta = std::chrono::system_clock::now();
+		auto real_sta = std::chrono::system_clock::now();
 
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
@@ -577,27 +578,33 @@ void Cell::CalcLonePairCoulombEnergy()
 
 				auto pair_end = std::chrono::system_clock::now();
 				pair_wtime = pair_end - pair_sta;
+				// BLOCK OUTPUT
 				printf("  (%d/%d)%6.3lfs",i+1,j+1,pair_wtime.count());
+				// BLOCK OUTPUT
 				if( delimiter_cnt == delimiter_max ){ delimiter_cnt = 0; cout << endl; }
 				else { delimiter_cnt++; }
 
 			}// end j
 		}// end i
-	delimiter_cnt = 0;
 
-	auto real_end = std::chrono::system_clock::now();
-	cout << endl;
+		delimiter_cnt = 0;
 
-	cout << endl;
-	real_wtime = real_end - real_sta;
-	cout << "   Real space wtime : " << real_wtime.count() << " s" << endl;
-	cout << endl;
-	cout << " *********************** " << endl;
-	cout << endl;
-	cout << "   Reciprocal space evaluation starts" << endl;
-	cout << endl;
+		auto real_end = std::chrono::system_clock::now();
 
-	auto reci_sta = std::chrono::system_clock::now();
+		// BLOCK OUTPUT
+		cout << endl;
+
+		cout << endl;
+		real_wtime = real_end - real_sta;
+		cout << "   Real space wtime : " << real_wtime.count() << " s" << endl;
+		cout << endl;
+		cout << " *********************** " << endl;
+		cout << endl;
+		cout << "   Reciprocal space evaluation starts" << endl;
+		cout << endl;
+		// BLOCK OUTPUT
+
+		auto reci_sta = std::chrono::system_clock::now();
 
 		for(int i=0;i<this->NumberOfAtoms;i++)
 		{	for(int j=0;j<this->NumberOfAtoms;j++)
@@ -630,86 +637,98 @@ void Cell::CalcLonePairCoulombEnergy()
 
 				auto pair_end = std::chrono::system_clock::now();
 				pair_wtime = pair_end - pair_sta;
+		
+				// BLOCK OUTPUT
 				printf("  (%d/%d)%6.3lfs",i+1,j+1,pair_wtime.count());
+				// BLOCK OUTPUT
+				
 				if( delimiter_cnt == delimiter_max ){ delimiter_cnt = 0; cout << endl; }
 				else { delimiter_cnt++; }
 
 			}// end j
 		}// end i
-	delimiter_cnt = 0;
+	
+		// BLOCK OUTPUT
+		delimiter_cnt = 0;
 
-	auto reci_end = std::chrono::system_clock::now();
-	cout << endl;
+		auto reci_end = std::chrono::system_clock::now();
+		cout << endl;
 
-	cout << endl;
-	reci_wtime = reci_end - reci_sta;
-	cout << "   Reci space wtime : " << reci_wtime.count() << " s" << endl;
-	cout << endl;
-	cout << " *********************** " << endl;
-	cout << endl;
+		cout << endl;
+		reci_wtime = reci_end - reci_sta;
+		cout << "   Reci space wtime : " << reci_wtime.count() << " s" << endl;
+		cout << endl;
+		cout << " *********************** " << endl;
+		cout << endl;
+
 		// Routine for Testify SCF Convergence
 		// Diagonalisations : Determine GroundStates of LonePairs
 		manager.GetLonePairGroundState(*this);
 
-	cout << "   Lone Pair Information ('*' ground state)" << endl;
-	cout << endl;
-	for(int i=0;i<this->NumberOfAtoms;i++)
-	{	if( this->AtomList[i]->type == "lone" )
-		{
-			cout << "    " << this->AtomList[i]->species << " (" << i+1 << ")" << endl;
-			cout << endl;
-			cout << "    Eigenvalues (eV) |  Eigenvectors [ s, px, py, pz ]" << endl;
-			cout << endl;
-			for(int j=0;j<4;j++)
+		cout << "   Lone Pair Information ('*' ground state)" << endl;
+		cout << endl;
+		for(int i=0;i<this->NumberOfAtoms;i++)
+		{	if( this->AtomList[i]->type == "lone" )
 			{
-				if( j != static_cast<LonePair*>(this->AtomList[i])->GetGSIndex() )
-				{	printf("   %s%14.9e  |\t",static_cast<LonePair*>(this->AtomList[i])->GetEval(j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEval(j));
-					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j));
-					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j));
-					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j));
-					printf("%s%12.6e\n",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j));	}
-				else
-				{	printf(" * %s%14.9e  |\t",static_cast<LonePair*>(this->AtomList[i])->GetEval(j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEval(j));
-					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j));
-					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j));
-					printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j));
-					printf("%s%12.6e\n",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j));	}
-			} 
-			cout << endl;
+				cout << "    " << this->AtomList[i]->species << " (" << i+1 << ")" << endl;
+				cout << endl;
+				cout << "    Eigenvalues (eV) |  Eigenvectors [ s, px, py, pz ]" << endl;
+				cout << endl;
+				for(int j=0;j<4;j++)
+				{
+					if( j != static_cast<LonePair*>(this->AtomList[i])->GetGSIndex() )
+					{	printf("   %s%14.9e  |\t",static_cast<LonePair*>(this->AtomList[i])->GetEval(j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEval(j));
+						printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j));
+						printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j));
+						printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j));
+						printf("%s%12.6e\n",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j));	}
+					else
+					{	printf(" * %s%14.9e  |\t",static_cast<LonePair*>(this->AtomList[i])->GetEval(j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEval(j));
+						printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(0,j));
+						printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(1,j));
+						printf("%s%12.6e\t",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(2,j));
+						printf("%s%12.6e\n",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j)>=0.?"+":"",static_cast<LonePair*>(this->AtomList[i])->GetEvec(3,j));	}
+				} 
+				cout << endl;
+			}
 		}
-	}
+		// BLOCK OUTPUT
+		
 		// only when it is the first SCF CYC - Calculating LonePair Core involved interactions
 		if( is_first_scf == true )
 		{	is_first_scf = false;	// false flag indicates, only calculate LonePair density
 			this->mono_total_energy = this->mono_real_energy + this->mono_reci_energy + this->mono_reci_self_energy; // Update LonePair Core Contribution
 		}
 
-	cout << " *********************** " << endl;
-	cout << endl;
-	cout << "    Cycle ends" << endl;
-	cout << endl;
-	cout << "    Cell Energy      (eV) : " << std::showpos << std::setprecision(16) << this->mono_total_energy + this->lp_total_energy << endl;
-	cout << endl;
-	cout << " *********************** " << endl;
-	cout << endl;
-	cout << "    (1) MM Energy Components" << endl;
-	cout << endl;
-	cout << "    Real              (eV) : " << std::showpos << std::setprecision(16) << this->mono_real_energy << endl;
-	cout << "    Reciprocal        (eV) : " << std::showpos << std::setprecision(16) << this->mono_reci_energy + this->mono_reci_self_energy << endl;
-	cout << "    MM Total Energy   (eV) : " << std::showpos << std::setprecision(16) << this->mono_total_energy << endl;
-	cout << endl;
-	cout << "    (2) LonePair Energy Components" << endl;
-	cout << endl;
-	cout << "    LP Real           (eV) : " << std::showpos << std::setprecision(16) << this->lp_real_energy << endl;
-	cout << "    LP Reciprocal     (eV) : " << std::showpos << std::setprecision(16) << this->lp_reci_energy << endl;
-	cout << "    LP Eigenvalue Sum (eV) : " << std::showpos << std::setprecision(16) << this->lp_eval_sum << "    (including self terms)" << endl;
-	cout << endl;
-	cout << "    LP Total Energy   (eV) : " << std::showpos << std::setprecision(16) << this->lp_total_energy << endl;
-	cout << endl;
+		// BLOCK OUTPUT
+		cout << " *********************** " << endl;
+		cout << endl;
+		cout << "    Cycle Ends" << endl;
+		cout << endl;
+		cout << "    Cell Energy      (eV) : " << std::showpos << std::setprecision(16) << this->mono_total_energy + this->lp_total_energy << endl;
+		cout << endl;
+		cout << " *********************** " << endl;
+		cout << endl;
+		cout << "    (1) MM Energy Components" << endl;
+		cout << endl;
+		cout << "    Real              (eV) : " << std::showpos << std::setprecision(16) << this->mono_real_energy << endl;
+		cout << "    Reciprocal        (eV) : " << std::showpos << std::setprecision(16) << this->mono_reci_energy + this->mono_reci_self_energy << endl;
+		cout << "    MM Total Energy   (eV) : " << std::showpos << std::setprecision(16) << this->mono_total_energy << endl;
+		cout << endl;
+		cout << "    (2) LonePair Energy Components" << endl;
+		cout << endl;
+		cout << "    LP Real           (eV) : " << std::showpos << std::setprecision(16) << this->lp_real_energy << endl;
+		cout << "    LP Reciprocal     (eV) : " << std::showpos << std::setprecision(16) << this->lp_reci_energy << endl;
+		cout << "    LP Eigenvalue Sum (eV) : " << std::showpos << std::setprecision(16) << this->lp_eval_sum << "    (including self terms)" << endl;
+		cout << endl;
+		cout << "    LP Total Energy   (eV) : " << std::showpos << std::setprecision(16) << this->lp_total_energy << endl;
+		cout << endl;
+		// BLOCK OUTPUT
 
 		if( manager.IsSCFDone( LONEPAIR_SCF_TOL/this->NumberOfAtoms ) ){ break; }
 	}// end SCF
 
+	// BLOCK OUTPUT
 	cout << "---------------------------------------------------------------------------------------------------------" << endl;
 	cout << endl;
 	cout << "    Finalising SCF Process ..." << endl;
@@ -719,7 +738,7 @@ void Cell::CalcLonePairCoulombEnergy()
 	manager.PrintSCFProfile(*this);
 	cout << endl;
 	cout << "---------------------------------------------------------------------------------------------------------" << endl;
-// Reporting Dev Result
+	// BLOCK OUTPUT
 
 	return;
 }
